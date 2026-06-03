@@ -55,7 +55,7 @@ const keys = {};
 onkeydown = e => keys[e.key.toLowerCase()] = true;
 onkeyup = e => keys[e.key.toLowerCase()] = false;
 
-let p1, p2, meteors, gameOver, winner, winnerColor;
+let p1, p2, meteors, gameOver, winnerText, winnerColor;
 
 function initGame() {
     p1 = { x: 200, y: 400, c: "#33aaff", dead: false };
@@ -63,7 +63,8 @@ function initGame() {
 
     meteors = [];
     gameOver = false;
-    winner = "";
+
+    winnerText = "";
     winnerColor = "#fff";
 
     playAgainBtn.style.display = "none";
@@ -104,6 +105,24 @@ function hit(p, m) {
 
 playAgainBtn.onclick = initGame;
 
+// 🎨 COLORED INSTRUCTIONS
+function drawInstructions() {
+    ctx.font = "18px Arial";
+    ctx.textAlign = "left";
+
+
+
+    // Blue controls
+    ctx.fillStyle = "#33aaff";
+    ctx.fillText("BLUE: W, A, S, D", 20, 50);
+
+    // Red controls
+    ctx.fillStyle = "#ff3333";
+    ctx.fillText("RED: O, K, L, Ñ", 20, 75);
+
+
+}
+
 function loop() {
     requestAnimationFrame(loop);
 
@@ -120,7 +139,7 @@ function loop() {
         if (keys.o) p2.y -= 6;
         if (keys.l) p2.y += 6;
         if (keys.k) p2.x -= 6;
-        if (keys["ñ"]) p2.x += 6;
+        if (keys.ñ) p2.x += 6;
 
         meteors.forEach(m => {
             m.y += m.s;
@@ -128,16 +147,16 @@ function loop() {
             if (!p1.dead && hit(p1, m)) {
                 p1.dead = true;
                 gameOver = true;
-                winner = "BLUE PLAYER WINS!";
-                winnerColor = p1.c;
+                winnerText = "RED WINS!";
+                winnerColor = p2.c;
                 playAgainBtn.style.display = "block";
             }
 
             if (!p2.dead && hit(p2, m)) {
                 p2.dead = true;
                 gameOver = true;
-                winner = "RED PLAYER WINS!";
-                winnerColor = p2.c;
+                winnerText = "BLUE WINS!";
+                winnerColor = p1.c;
                 playAgainBtn.style.display = "block";
             }
         });
@@ -153,11 +172,13 @@ function loop() {
     if (!p1.dead) ship(p1);
     if (!p2.dead) ship(p2);
 
+    drawInstructions();
+
     if (gameOver) {
         ctx.fillStyle = winnerColor;
         ctx.font = "50px Arial";
         ctx.textAlign = "center";
-        ctx.fillText(winner, canvas.width / 2, canvas.height / 2);
+        ctx.fillText(winnerText, canvas.width / 2, canvas.height / 2);
     }
 }
 
