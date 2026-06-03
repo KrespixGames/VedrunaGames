@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8" />
+<title>MULTIPONG</title>
+<style>
+    body {
+        margin: 0;
+        background: #050814;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        font-family: Arial;
+    }
+
+    canvas {
+        background: #071026;
+        border: 2px solid #00e5ff;
+        box-shadow: 0 0 20px #00e5ff;
+    }
+
+    .screen {
+        position: absolute;
+        text-align: center;
+        color: white;
+    }
+
+    button {
+        padding: 10px 20px;
+        font-size: 18px;
+        background: #00e5ff;
+        border: none;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    h1 { color: #00e5ff; }
+</style>
+</head>
+<body>
+
+<div id="startScreen" class="screen">
+    <h1>🏓MULTIPONG🏓</h1>
+    <button onclick="startGame()">▶ PLAY</button>
+</div>
+
+<div id="endScreen" class="screen" style="display:none;">
+    <h1 id="winnerText"></h1>
+    <button onclick="restartGame()">🔄 PLAY AGAIN</button>
+</div>
+
+<canvas id="game" width="600" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let running = false;
+
+let paddle = { w: 90, h: 12 };
+
+let yellow = { x: 255, y: 10, score: 0 };
+let green  = { x: 255, y: 578, score: 0 };
+
+// 🔥 pilota rodona
+let ball = { x: 300, y: 300, r: 20, vx: 0, vy: 0 };
+
+let keys = {};
+let time = 100;
+
+// velocitat per punt
+let baseSpeed = 3;
+let speedTimer = 0;
+let maxSpeed = 0;
+
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
+
+function resetBall(dir = 1) {
+    ball.x = 300;
+    ball.y = 300;
+
+    // velocitat inicial lenta
+    baseSpeed = 3;
+    speedTimer = 0;
+
+    // 🔥 MÀXIM 350% de la velocitat inicial
+    maxSpeed = baseSpeed * 5;
+
+    ball.vx = baseSpeed * dir;
+    ball.vy = baseSpeed * (Math.random() > 0.5 ? 1 : -1);
+}
+
+function increaseSpeed() {
+    speedTimer++;
+
+    // cada ~5 segons (60fps → 300 frames)
+    if (speedTimer >= 300) {
+        speedTimer = 0;
+
+        let factor = 1.35;
+
+        ball.vx *= factor;
+        ball.vy *= factor;
+
+        // limitar a maxSpeed (350%)
+        let speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+
+        if (speed > maxSpeed) {
+            let scale = maxSpeed / speed;
+            ball.vx *= scale;
+            ball.vy *= scale;
+        }
+    }
+}
+
+function updatePaddles() {
+    if (keys["a"]) yellow.x -= 6;
+    if (keys["d"]) yellow.x += 6;
+
+    if (keys["ArrowLeft"]) green.x -= 6;
+    if (keys["ArrowRight"]) green.x += 6;
+
+    yellow.x = Math.max(0, Math.min(600 - paddle.w, yellow.x));
+    green.x = Math.max(0, Math.min(600 - paddle.w, green.x));
+}
+
+function hit(p) {
+    return (
+        ball.x + ball.r > p.x &&
+        ball.x - ball.r < p.x + paddle.w &&
+        ball.y + ball.r > p.y &&
+        ball.y - ball.r < p.y + paddle.h
+    );
+}
+
+function updateBall() {
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+
+    // parets laterals
+    if (ball.x - ball.r <= 0 || ball.x + ball.r >= 600) {
+        ball.vx *= -1;
+    }
+
+    // rebot paddles
+    if (hit(yellow) && ball.vy < 0) {
+        ball.vy *= -1;
+        ball.y = yellow.y + paddle.h + ball.r;
+    }
+
+    if (hit(green) && ball.vy > 0) {
+        ball.vy *= -1;
+        ball.y = green.y - ball.r;
+    }
+
+    // punts
+    if (ball.y + ball.r < 0) {
+        green.score++;
+        resetBall(1);
+    }
+
+    if (ball.y - ball.r > 600) {
+        yellow.score++;
+        resetBall(-1);
+    }
+}
+
+function draw() {
+    ctx.clearRect(0,0,600,600);
+
+    // paddles
+    ctx.fillStyle = "yellow";
+    ctx.fillRect(yellow.x, yellow.y, paddle.w, paddle.h);
+
+    ctx.fillStyle = "lime";
+    ctx.fillRect(green.x, green.y, paddle.w, paddle.h);
+
+    // pilota rodona
+    ctx.fillStyle = "white";
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // UI
+    ctx.fillStyle = "white";
+    ctx.font = "18px Arial";
+    ctx.fillText(`Yellow: ${yellow.score}`, 20, 30);
+    ctx.fillText(`Green: ${green.score}`, 20, 580);
+    ctx.fillText(`Time: ${time}s`, 500, 30);
+}
+
+function loop() {
+    if (!running) return;
+
+    updatePaddles();
+    updateBall();
+    increaseSpeed();
+    draw();
+
+    requestAnimationFrame(loop);
+}
+
+function timer() {
+    if (!running) return;
+
+    time--;
+    if (time <= 0) end();
+
+    setTimeout(timer, 1000);
+}
+
+function startGame() {
+    document.getElementById("startScreen").style.display = "none";
+    running = true;
+    resetBall(1);
+    timer();
+    loop();
+}
+
+function end() {
+    running = false;
+
+    let winner = "Empat!";
+    if (yellow.score > green.score) winner = "Yellow guanya!";
+    if (green.score > yellow.score) winner = "Green guanya!";
+
+    document.getElementById("winnerText").innerText = winner;
+    document.getElementById("endScreen").style.display = "block";
+}
+
+function restartGame() {
+    yellow.score = 0;
+    green.score = 0;
+    time = 100;
+
+    document.getElementById("endScreen").style.display = "none";
+    startGame();
+}
+</script>
+
+</body>
+</html>
