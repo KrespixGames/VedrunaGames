@@ -2,7 +2,7 @@
 <html lang="ca">
 <head>
 <meta charset="UTF-8" />
-<title>MULTIPONG</title>
+<title>🏓MULTIPONG🏓</title>
 <style>
     body {
         margin: 0;
@@ -219,115 +219,26 @@ function startGame() {
     loop();
 }
 
-function end() 
-
-
-Text enganxat.text
-Fitxer
-Veus que quan algun jugador guanya surt Yellow Guanya!, o Green Guanya! Doncs jo vull que surti en anglès i que si el jugador verd guanya el text sigui de color verd, i si el jugador groc guanya el text sigui de color groc. Em refereixo en això de Yellow Guanya!
-
-Sí. Al teu codi, a la funció end(), ara tens:
-
-let winner = "Empat!";
-if (yellow.score > green.score) winner = "Yellow guanya!";
-if (green.score > yellow.score) winner = "Green guanya!";
-
-document.getElementById("winnerText").innerText = winner;
-Canvia-ho per això:
-
-let winnerText = document.getElementById("winnerText");
-
-if (yellow.score > green.score) {
-    winnerText.innerText = "YELLOW WINS!";
-    winnerText.style.color = "yellow";
-}
-else if (green.score > yellow.score) {
-    winnerText.innerText = "GREEN WINS!";
-    winnerText.style.color = "lime";
-}
-else {
-    winnerText.innerText = "DRAW!";
-    winnerText.style.color = "white";
-}
-
-document.getElementById("endScreen").style.display = "block";
-Així:
-
-Si guanya el groc → YELLOW WINS! (text groc)
-
-Si guanya el verd → GREEN WINS! (text verd)
-
-Si empaten → DRAW! (text blanc)
-
-Substitueix tot el contingut actual de la funció end() per:
-
 function end() {
     running = false;
 
-    let winnerText = document.getElementById("winnerText");
+    const title = document.getElementById("winnerText");
 
     if (yellow.score > green.score) {
-        winnerText.innerText = "YELLOW WINS!";
-        winnerText.style.color = "yellow";
-    }
+        title.innerText = "YELLOW WINS!";
+        title.style.color = "yellow";
+    } 
     else if (green.score > yellow.score) {
-        winnerText.innerText = "GREEN WINS!";
-        winnerText.style.color = "lime";
-    }
+        title.innerText = "GREEN WINS!";
+        title.style.color = "lime";
+    } 
     else {
-        winnerText.innerText = "DRAW!";
-        winnerText.style.color = "white";
+        title.innerText = "DRAW!";
+        title.style.color = "gray";
     }
 
     document.getElementById("endScreen").style.display = "block";
 }
-
-Ara com quedaria? (fes-me el codi en html)
-
-Només cal canviar la funció end(). Quedaria així dins del teu HTML:
-
-<script>
-function end() {
-    running = false;
-
-    let winnerText = document.getElementById("winnerText");
-
-    if (yellow.score > green.score) {
-        winnerText.innerText = "YELLOW WINS!";
-        winnerText.style.color = "yellow";
-    }
-    else if (green.score > yellow.score) {
-        winnerText.innerText = "GREEN WINS!";
-        winnerText.style.color = "lime";
-    }
-    else {
-        winnerText.innerText = "DRAW!";
-        winnerText.style.color = "white";
-    }
-
-    document.getElementById("endScreen").style.display = "block";
-}
-</script>
-I si vols veure exactament què sortirà a la pantalla:
-
-🟨 Guanya el groc → YELLOW WINS! (color groc)
-
-🟩 Guanya el verd → GREEN WINS! (color verd)
-
-⚪ Empat → DRAW! (color blanc)
-
-No has de tocar res més del teu codi; simplement substitueix la funció end() actual per aquesta.
-
-Descobreix el Codex.
-Un agent de codi que t'ajuda a crear i publicar amb IA, inclòs de franc al teu pla del ChatGPT.
-
-Baixa't l'aplicació
-
-Més informació
-
-Doncs ara fes tot el codi
-
-
 
 function restartGame() {
     yellow.score = 0;
