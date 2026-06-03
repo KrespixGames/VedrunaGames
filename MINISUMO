@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8" />
+<title>MiniSumo</title>
+
+<style>
+body {
+  margin: 0;
+  background: #111;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-family: Arial;
+  overflow: hidden;
+}
+
+/* CANVAS */
+canvas {
+  background: #222;
+  border-radius: 50%;
+}
+
+/* HUD INSTRUCCIONS */
+#hud {
+  position: absolute;
+  top: 10px;
+  text-align: center;
+  font-size: 12px;
+  color: #aaa;
+}
+
+.red { color: #ff4b4b; font-weight: bold; }
+.blue { color: #4ba3ff; font-weight: bold; }
+
+/* SCORE */
+#score {
+  position: absolute;
+  top: 40px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+#score .r { color: red; }
+#score .b { color: dodgerblue; }
+
+/* OVERLAY GENERAL */
+.overlay {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: white;
+}
+
+/* TITOL */
+.title {
+  font-size: 60px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #fff;
+  text-shadow: 0 0 20px rgba(255,255,255,0.3);
+}
+
+/* BOTONS */
+button {
+  padding: 12px 24px;
+  font-size: 20px;
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #ff3b3b, #3b7bff);
+  color: white;
+  font-weight: bold;
+  margin-top: 20px;
+}
+
+button:hover {
+  transform: scale(1.05);
+}
+
+/* WIN TEXT */
+#winText {
+  font-size: 50px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+</style>
+
+</head>
+<body>
+
+<!-- INSTRUCCIONS -->
+<div id="hud">
+  <span class="red">RED</span>: W A S D · 
+  <span class="blue">BLUE</span>: O K L Ñ
+</div>
+
+<!-- SCORE -->
+<div id="score">
+  <span class="r" id="s1">0</span> - <span class="b" id="s2">0</span>
+</div>
+
+<!-- MENU -->
+<div id="menu" class="overlay">
+  <div class="title">MINI SUMO</div>
+  <div style="color:#bbb">Empeny el rival fora del cercle</div>
+  <button onclick="startGame()">PLAY MINISUMO</button>
+</div>
+
+<!-- WIN -->
+<div id="winScreen" class="overlay" style="display:none;">
+  <div id="winText"></div>
+  <button onclick="startGame()">PLAY AGAIN</button>
+</div>
+
+<canvas id="game" width="600" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const center = { x: 300, y: 300 };
+const radius = 250;
+
+const keys = {};
+document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+
+let score1 = 0;
+let score2 = 0;
+let running = false;
+
+const p1 = { x: 200, y: 300, vx: 0, vy: 0, r: 30, color: "red" };
+const p2 = { x: 400, y: 300, vx: 0, vy: 0, r: 30, color: "dodgerblue" };
+
+function startGame() {
+  score1 = 0;
+  score2 = 0;
+  reset();
+
+  running = true;
+  document.getElementById("menu").style.display = "none";
+  document.getElementById("winScreen").style.display = "none";
+
+  updateScoreUI();
+}
+
+function reset() {
+  p1.x = 200; p1.y = 300; p1.vx = 0; p1.vy = 0;
+  p2.x = 400; p2.y = 300; p2.vx = 0; p2.vy = 0;
+}
+
+function move(p, up, down, left, right) {
+  const acc = 0.18;
+
+  if (keys[up]) p.vy -= acc;
+  if (keys[down]) p.vy += acc;
+  if (keys[left]) p.vx -= acc;
+  if (keys[right]) p.vx += acc;
+}
+
+function physics(p) {
+  p.x += p.vx;
+  p.y += p.vy;
+
+  // gel feel
+  p.vx *= 0.992;
+  p.vy *= 0.992;
+}
+
+function collide(a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  const min = a.r + b.r;
+
+  if (dist === 0 || dist >= min) return;
+
+  const nx = dx / dist;
+  const ny = dy / dist;
+
+  const overlap = min - dist;
+
+  a.x -= nx * overlap * 0.5;
+  a.y -= ny * overlap * 0.5;
+  b.x += nx * overlap * 0.5;
+  b.y += ny * overlap * 0.5;
+
+  const impulse = 0.35;
+  const relX = a.vx - b.vx;
+  const relY = a.vy - b.vy;
+
+  const impact = (relX * nx + relY * ny) * impulse;
+
+  a.vx -= impact * nx;
+  a.vy -= impact * ny;
+  b.vx += impact * nx;
+  b.vy += impact * ny;
+}
+
+function check() {
+  const d1 = Math.hypot(p1.x - center.x, p1.y - center.y);
+  const d2 = Math.hypot(p2.x - center.x, p2.y - center.y);
+
+  if (!running) return;
+
+  if (d1 > radius) {
+    score2++;
+    reset();
+  }
+
+  if (d2 > radius) {
+    score1++;
+    reset();
+  }
+
+  updateScoreUI();
+
+  if (score1 >= 5) win("PLAYER RED WIN!", "red");
+  if (score2 >= 5) win("PLAYER BLUE WIN!", "dodgerblue");
+}
+
+function updateScoreUI() {
+  document.getElementById("s1").textContent = score1;
+  document.getElementById("s2").textContent = score2;
+}
+
+function win(text, color) {
+  running = false;
+
+  const win = document.getElementById("winScreen");
+  const winText = document.getElementById("winText");
+
+  winText.textContent = text;
+  winText.style.color = color;
+
+  win.style.display = "flex";
+}
+
+function draw() {
+  ctx.clearRect(0, 0, 600, 600);
+
+  ctx.beginPath();
+  ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = "#555";
+  ctx.lineWidth = 5;
+  ctx.stroke();
+
+  for (const p of [p1, p2]) {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+  }
+}
+
+function loop() {
+  if (running) {
+    move(p1, "w", "s", "a", "d");
+    move(p2, "o", "l", "k", "ñ");
+
+    physics(p1);
+    physics(p2);
+
+    collide(p1, p2);
+    check();
+  }
+
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+</html>
