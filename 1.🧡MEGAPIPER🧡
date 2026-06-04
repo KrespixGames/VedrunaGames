@@ -30,7 +30,7 @@
     <div id="ui">
         <div class="hud">
             <div class="stat-box">
-                <div class="label"><span>P1 (Space+Arrows)</span><span id="p1-rel" class="reload-msg">RELOADING...</span></div>
+                <div class="label"><span>P1 (Arrow keys)</span><span id="p1-rel" class="reload-msg">RELOADING...</span></div>
                 <div class="bar-bg"><div id="p1-hp" class="bar"></div></div>
                 <div class="ammo-box">
                     <div id="p1-a1" class="ammo-pip"></div>
@@ -52,7 +52,9 @@
             <h1 id="win-txt">WINNER!</h1>
             <button onclick="resetGame()">PLAY AGAIN</button>
         </div>
-        <div id="info">P1: Arrows to move and up arrow for shot | P2: A+D to move, W to shoot</div>
+        <div id="info">
+            P1: Arrows to move + ArrowUp to shoot | P2: A+D to move, W to shoot
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -145,15 +147,18 @@
             switch(event.code) {
                 case 'ArrowLeft': keys.p1Left = true; break;
                 case 'ArrowRight': keys.p1Right = true; break;
-                case 'Space': 
+
+                // 🔥 CANVI IMPORTANT: Space -> ArrowUp
+                case 'ArrowUp':
                     if (!keys.p1Shoot) shoot(1);
-                    keys.p1Shoot = true; 
+                    keys.p1Shoot = true;
                     break;
+
                 case 'KeyA': keys.p2Left = true; break;
                 case 'KeyD': keys.p2Right = true; break;
-                case 'KeyW': 
+                case 'KeyW':
                     if (!keys.p2Shoot) shoot(2);
-                    keys.p2Shoot = true; 
+                    keys.p2Shoot = true;
                     break;
             }
         }
@@ -162,7 +167,10 @@
             switch(event.code) {
                 case 'ArrowLeft': keys.p1Left = false; break;
                 case 'ArrowRight': keys.p1Right = false; break;
-                case 'Space': keys.p1Shoot = false; break;
+
+                // 🔥 CANVI IMPORTANT: Space -> ArrowUp
+                case 'ArrowUp': keys.p1Shoot = false; break;
+
                 case 'KeyA': keys.p2Left = false; break;
                 case 'KeyD': keys.p2Right = false; break;
                 case 'KeyW': keys.p2Shoot = false; break;
@@ -193,9 +201,8 @@
             if (playerNum === 1 && ammo1 === 0 && !reloading1) {
                 reloading1 = true;
                 document.getElementById('p1-rel').classList.add('on');
-                for (let i = 1; i <= 3; i++) {
-                    document.getElementById('p1-a' + i).classList.add('empty');
-                }
+                for (let i = 1; i <= 3; i++) document.getElementById('p1-a' + i).classList.add('empty');
+
                 setTimeout(() => {
                     ammo1 = MAX_AMMO;
                     reloading1 = false;
@@ -205,9 +212,8 @@
             } else if (playerNum === 2 && ammo2 === 0 && !reloading2) {
                 reloading2 = true;
                 document.getElementById('p2-rel').classList.add('on');
-                for (let i = 1; i <= 3; i++) {
-                    document.getElementById('p2-a' + i).classList.add('empty');
-                }
+                for (let i = 1; i <= 3; i++) document.getElementById('p2-a' + i).classList.add('empty');
+
                 setTimeout(() => {
                     ammo2 = MAX_AMMO;
                     reloading2 = false;
@@ -221,10 +227,10 @@
             for (let i = 1; i <= 3; i++) {
                 let pip1 = document.getElementById('p1-a' + i);
                 let pip2 = document.getElementById('p2-a' + i);
-                
+
                 if (i > ammo1) pip1.classList.add('empty');
                 else pip1.classList.remove('empty');
-                
+
                 if (i > ammo2) pip2.classList.add('empty');
                 else pip2.classList.remove('empty');
             }
@@ -240,7 +246,7 @@
                 gameActive = false;
                 let msgBox = document.getElementById('msg');
                 let winText = document.getElementById('win-txt');
-                
+
                 if (hp2 <= 0) {
                     winText.textContent = 'PLAYER 1 WINS!';
                     winText.style.color = '#00aaff';
@@ -248,7 +254,7 @@
                     winText.textContent = 'PLAYER 2 WINS!';
                     winText.style.color = '#ff3333';
                 }
-                
+
                 msgBox.style.display = 'block';
             }
         }
@@ -258,15 +264,13 @@
             ammo1 = ammo2 = MAX_AMMO;
             reloading1 = reloading2 = false;
             gameActive = true;
-            
+
             player1.position.set(0, 1.5, -10);
             player2.position.set(0, 1.5, 10);
-            
-            for (let b of bullets) {
-                scene.remove(b);
-            }
+
+            for (let b of bullets) scene.remove(b);
             bullets = [];
-            
+
             document.getElementById('msg').style.display = 'none';
             updateAmmoDisplay();
             updateHealthBars();
@@ -280,47 +284,45 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            
+
             if (gameActive) {
                 if (keys.p1Left && player1.position.x > -LIMIT_X) player1.position.x -= MOVE_SPEED;
                 if (keys.p1Right && player1.position.x < LIMIT_X) player1.position.x += MOVE_SPEED;
-                
+
                 if (keys.p2Left && player2.position.x > -LIMIT_X) player2.position.x -= MOVE_SPEED;
                 if (keys.p2Right && player2.position.x < LIMIT_X) player2.position.x += MOVE_SPEED;
             }
-            
+
             for (let i = bullets.length - 1; i >= 0; i--) {
                 let b = bullets[i];
                 b.position.z += b.userData.direction * BULLET_SPEED;
-                
+
                 let hit = false;
-                
+
                 if (b.userData.direction > 0) {
-                    if (b.position.z >= player2.position.z - 1.5 && b.position.z <= player2.position.z + 1.5) {
-                        if (Math.abs(b.position.x - player2.position.x) < 2) {
-                            hit = true;
-                            hp2 -= 20;
-                            updateHealthBars();
-                            checkGameOver();
-                        }
+                    if (Math.abs(b.position.z - player2.position.z) < 1.5 &&
+                        Math.abs(b.position.x - player2.position.x) < 2) {
+                        hit = true;
+                        hp2 -= 20;
+                        updateHealthBars();
+                        checkGameOver();
                     }
                 } else {
-                    if (b.position.z <= player1.position.z + 1.5 && b.position.z >= player1.position.z - 1.5) {
-                        if (Math.abs(b.position.x - player1.position.x) < 2) {
-                            hit = true;
-                            hp1 -= 20;
-                            updateHealthBars();
-                            checkGameOver();
-                        }
+                    if (Math.abs(b.position.z - player1.position.z) < 1.5 &&
+                        Math.abs(b.position.x - player1.position.x) < 2) {
+                        hit = true;
+                        hp1 -= 20;
+                        updateHealthBars();
+                        checkGameOver();
                     }
                 }
-                
+
                 if (hit || b.position.z < -20 || b.position.z > 20) {
                     scene.remove(b);
                     bullets.splice(i, 1);
                 }
             }
-            
+
             renderer.render(scene, camera);
         }
 
