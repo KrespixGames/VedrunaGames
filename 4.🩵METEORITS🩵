@@ -18,26 +18,6 @@ canvas {
     display: block;
 }
 
-/* BUTTONS */
-#playAgain, #menuBtn {
-    position: absolute;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    padding: 15px 30px;
-    font-size: 22px;
-    font-weight: bold;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    background: #fff;
-    color: #000;
-    display: none;
-}
-
-#menuBtn {
-    top: 55%;
-}
-
 /* MENU */
 #menu {
     position: absolute;
@@ -62,18 +42,91 @@ canvas {
     margin-top: 10px;
 }
 
-#startBtn {
-    margin-top: 30px;
+#startBtn, #soloBtn {
+    margin-top: 15px;
     padding: 15px 30px;
     font-size: 22px;
     border: none;
     border-radius: 10px;
     cursor: pointer;
-    background: linear-gradient(90deg, #33aaff, #ff3333);
-    color: white;
     font-weight: bold;
 }
 
+#startBtn {
+    background: linear-gradient(90deg, #33aaff, #ff3333);
+    color: white;
+}
+
+#soloBtn {
+    background: #444;
+    color: white;
+}
+
+/* SOLO SELECT */
+#soloSelect {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, #111, #000);
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    text-align: center;
+}
+
+#soloSelect h2 {
+    font-size: 42px;
+    margin-bottom: 25px;
+    letter-spacing: 2px;
+}
+
+#bluePick, #redPick {
+    margin: 12px;
+    padding: 18px 35px;
+    font-size: 22px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+#bluePick {
+    background: #33aaff;
+    color: #000;
+    box-shadow: 0 0 20px #33aaff;
+}
+
+#redPick {
+    background: #ff3333;
+    color: #000;
+    box-shadow: 0 0 20px #ff3333;
+}
+
+#bluePick:hover, #redPick:hover {
+    transform: scale(1.08);
+}
+
+/* GAME OVER */
+#playAgain, #menuBtn {
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 15px 30px;
+    font-size: 22px;
+    font-weight: bold;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background: #fff;
+    color: #000;
+    display: none;
+}
+
+#playAgain { top: 45%; }
+#menuBtn { top: 60%; }
 </style>
 </head>
 
@@ -84,18 +137,36 @@ canvas {
     <h1>METEOR DODGE</h1>
     <p>Blue: W A S D · Red: Arrow Keys</p>
     <button id="startBtn">PLAY</button>
+    <button id="soloBtn">PLAY SOLO</button>
+</div>
+
+<!-- SOLO SELECT -->
+<div id="soloSelect">
+    <h2>WHICH PLAYER DO YOU WANT?</h2>
+    <button id="bluePick">BLUE PLAYER</button>
+    <button id="redPick">RED PLAYER</button>
 </div>
 
 <canvas id="c"></canvas>
+
 <button id="playAgain">PLAY AGAIN</button>
+<button id="menuBtn">GO TO MENU</button>
 
 <script>
 const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d");
 
-const playAgainBtn = document.getElementById("playAgain");
 const menu = document.getElementById("menu");
+const soloSelect = document.getElementById("soloSelect");
+
 const startBtn = document.getElementById("startBtn");
+const soloBtn = document.getElementById("soloBtn");
+
+const bluePick = document.getElementById("bluePick");
+const redPick = document.getElementById("redPick");
+
+const playAgainBtn = document.getElementById("playAgain");
+const menuBtn = document.getElementById("menuBtn");
 
 function resize() {
     canvas.width = innerWidth;
@@ -108,7 +179,12 @@ const keys = {};
 onkeydown = e => keys[e.key.toLowerCase()] = true;
 onkeyup = e => keys[e.key.toLowerCase()] = false;
 
-let p1, p2, meteors, gameOver, running;
+let p1, p2, meteors;
+let gameOver = false;
+let running = false;
+
+let soloMode = false;
+let soloPlayer = "blue";
 
 function initGame() {
     p1 = { x: 200, y: 400, c: "#33aaff", dead: false };
@@ -119,6 +195,7 @@ function initGame() {
     running = true;
 
     playAgainBtn.style.display = "none";
+    menuBtn.style.display = "none";
 }
 
 function ship(p) {
@@ -142,7 +219,9 @@ function meteor() {
         x: Math.random() * canvas.width,
         y: -30,
         r: 15 + Math.random() * 25,
-        s: 3 + Math.random() * 4
+        s: soloMode
+            ? (6 + Math.random() * 8)   // 💥 2x speed SOLO
+            : (3 + Math.random() * 4)
     });
 }
 
@@ -154,25 +233,50 @@ function hit(p, m) {
     return Math.hypot(p.x - m.x, p.y - m.y) < m.r + 20;
 }
 
-playAgainBtn.onclick = () => {
-    initGame();
-};
+function showGameOverButtons() {
+    playAgainBtn.style.display = "block";
+    menuBtn.style.display = "block";
+}
 
+/* MENU BUTTONS */
 startBtn.onclick = () => {
+    soloMode = false;
     menu.style.display = "none";
     initGame();
 };
 
-function drawInstructions() {
-    ctx.font = "18px Arial";
-    ctx.textAlign = "left";
+soloBtn.onclick = () => {
+    menu.style.display = "none";
+    soloSelect.style.display = "flex";
+};
 
-    ctx.fillStyle = "#33aaff";
-    ctx.fillText("BLUE: W, A, S, D", 20, 50);
+bluePick.onclick = () => {
+    soloMode = true;
+    soloPlayer = "blue";
+    soloSelect.style.display = "none";
+    initGame();
+};
 
-    ctx.fillStyle = "#ff3333";
-    ctx.fillText("RED: ARROWS", 20, 75);
-}
+redPick.onclick = () => {
+    soloMode = true;
+    soloPlayer = "red";
+    soloSelect.style.display = "none";
+    initGame();
+};
+
+playAgainBtn.onclick = () => {
+    initGame();
+};
+
+menuBtn.onclick = () => {
+    running = false;
+    gameOver = false;
+
+    menu.style.display = "flex";
+    soloSelect.style.display = "none";
+    playAgainBtn.style.display = "none";
+    menuBtn.style.display = "none";
+};
 
 function loop() {
     requestAnimationFrame(loop);
@@ -182,31 +286,48 @@ function loop() {
 
     if (running && !gameOver) {
 
-        // BLUE
-        if (keys.w) p1.y -= 6;
-        if (keys.s) p1.y += 6;
-        if (keys.a) p1.x -= 6;
-        if (keys.d) p1.x += 6;
+        /* MOVEMENT */
+        if (!soloMode || soloPlayer === "blue") {
+            if (keys.w) p1.y -= 6;
+            if (keys.s) p1.y += 6;
+            if (keys.a) p1.x -= 6;
+            if (keys.d) p1.x += 6;
+        }
 
-        // RED (ARROWS)
-        if (keys.arrowup) p2.y -= 6;
-        if (keys.arrowdown) p2.y += 6;
-        if (keys.arrowleft) p2.x -= 6;
-        if (keys.arrowright) p2.x += 6;
+        if (!soloMode || soloPlayer === "red") {
+            if (keys.arrowup) p2.y -= 6;
+            if (keys.arrowdown) p2.y += 6;
+            if (keys.arrowleft) p2.x -= 6;
+            if (keys.arrowright) p2.x += 6;
+        }
 
         meteors.forEach(m => {
             m.y += m.s;
 
-            if (!p1.dead && hit(p1, m)) {
-                p1.dead = true;
-                gameOver = true;
-                playAgainBtn.style.display = "block";
-            }
+            if (!soloMode) {
+                if (!p1.dead && hit(p1, m)) {
+                    p1.dead = true;
+                    gameOver = true;
+                    showGameOverButtons();
+                }
 
-            if (!p2.dead && hit(p2, m)) {
-                p2.dead = true;
-                gameOver = true;
-                playAgainBtn.style.display = "block";
+                if (!p2.dead && hit(p2, m)) {
+                    p2.dead = true;
+                    gameOver = true;
+                    showGameOverButtons();
+                }
+            } else {
+                if (soloPlayer === "blue" && !p1.dead && hit(p1, m)) {
+                    p1.dead = true;
+                    gameOver = true;
+                    showGameOverButtons();
+                }
+
+                if (soloPlayer === "red" && !p2.dead && hit(p2, m)) {
+                    p2.dead = true;
+                    gameOver = true;
+                    showGameOverButtons();
+                }
             }
         });
     }
@@ -218,10 +339,13 @@ function loop() {
         ctx.fill();
     });
 
-    if (!p1.dead) ship(p1);
-    if (!p2.dead) ship(p2);
-
-    drawInstructions();
+    if (soloMode) {
+        if (soloPlayer === "blue") ship(p1);
+        else ship(p2);
+    } else {
+        ship(p1);
+        ship(p2);
+    }
 
     if (gameOver) {
         ctx.fillStyle = "#fff";
