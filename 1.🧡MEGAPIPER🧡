@@ -52,7 +52,7 @@
             <h1 id="win-txt">WINNER!</h1>
             <button onclick="resetGame()">PLAY AGAIN</button>
         </div>
-        <div id="info">P1: Arrows to move, Space to shoot | P2: A+D to move, W to shoot</div>
+        <div id="info">P1: Arrows to move and up arrow for shot | P2: A+D to move, W to shoot</div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -162,7 +162,7 @@
             switch(event.code) {
                 case 'ArrowLeft': keys.p1Left = false; break;
                 case 'ArrowRight': keys.p1Right = false; break;
-                case 'Space': keys.p1Shoot = false; break;
+                case 'ArrowUp': keys.p1Shoot = false; break;
                 case 'KeyA': keys.p2Left = false; break;
                 case 'KeyD': keys.p2Right = false; break;
                 case 'KeyW': keys.p2Shoot = false; break;
