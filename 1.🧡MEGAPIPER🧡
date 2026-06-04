@@ -162,7 +162,7 @@
             switch(event.code) {
                 case 'ArrowLeft': keys.p1Left = false; break;
                 case 'ArrowRight': keys.p1Right = false; break;
-                case 'ArrowUp': keys.p1Shoot = false; break;
+                case 'Space': keys.p1Shoot = false; break;
                 case 'KeyA': keys.p2Left = false; break;
                 case 'KeyD': keys.p2Right = false; break;
                 case 'KeyW': keys.p2Shoot = false; break;
