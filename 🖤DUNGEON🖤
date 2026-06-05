@@ -1,0 +1,2252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dungeon Rivals - 2-Player Competitive Arcade</title>
+ 
+  <!-- Tailwind CSS integration for outer styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    /* Artistic Flair theme configuration & Retro CRT monitor visual emulation */
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap');
+
+    :root {
+      --bg: #0c0c0e;
+      --panel: #151619;
+      --accent: #f27d26;
+      --p1: #3b82f6;
+      --p2: #22c55e;
+      --treasure: #fbbf24;
+      --trap: #ef4444;
+      --monster: #a855f7;
+      --wall: #2a2a32;
+      --floor: #16161d;
+      --f-mono: 'Courier New', Courier, monospace;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image: radial-gradient(circle at center, #1b1c22 0%, #0c0c0e 100%);
+      color: #edeaf5;
+      font-family: var(--f-mono);
+      overflow-x: hidden;
+      image-rendering: pixelated;
+    }
+
+    .retro-font-headline {
+      font-family: 'Press Start 2P', monospace;
+    }
+
+    /* Scanlines and flicker simulation overlay */
+    .crt-monitor {
+      position: relative;
+      overflow: hidden;
+      border: 15px solid var(--panel);
+      border-radius: 12px;
+      box-shadow:
+        0 0 0 3px #23242c,
+        0 20px 50px rgba(0, 0, 0, 0.85),
+        inset 0 0 40px rgba(0, 0, 0, 0.95);
+      background-color: var(--bg);
+    }
+
+    .crt-monitor::after {
+      content: " ";
+      display: block;
+      position: absolute;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background-size: 100% 4px, 6px 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* Screen curvature and vignette shadow */
+    .screen-glare {
+      pointer-events: none;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(circle at 50% 15%, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.5) 100%);
+      z-index: 5;
+    }
+
+    /* Glow details themed dynamically */
+    .glow-blue {
+      text-shadow: 0 0 8px rgba(59, 130, 246, 0.85);
+    }
+    .glow-green {
+      text-shadow: 0 0 8px rgba(34, 197, 94, 0.85);
+    }
+    .glow-gold {
+      text-shadow: 0 0 10px rgba(242, 125, 38, 0.9);
+    }
+    .glow-red {
+      text-shadow: 0 0 8px rgba(239, 68, 68, 0.85);
+    }
+
+    /* Custom scrollbars matching Artistic Flair theme */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0c0c0e;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2a2a32;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--accent);
+    }
+
+    /* CRT glass convex bending */
+    .crt-glass {
+      animation: crt-flicker 0.15s infinite alternate;
+    }
+
+    @keyframes crt-flicker {
+      0% { opacity: 0.995; }
+      100% { opacity: 1; }
+    }
+
+    /* Retro floating status tags */
+    .stat-badge {
+      border: 1px solid #31313a;
+      background: rgba(21, 22, 25, 0.9);
+    }
+
+    /* Theme specific buttons from Design Specs */
+    .artistic-btn {
+      padding: 10px 20px;
+      font-family: var(--f-mono);
+      background: transparent;
+      border: 2px solid var(--accent);
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      cursor: pointer;
+      font-weight: bold;
+      border-radius: 4px;
+      transition: all 0.25s ease-in-out;
+    }
+    .artistic-btn:hover {
+      background: var(--accent);
+      color: #0c0c0e;
+      box-shadow: 0 0 15px rgba(242, 125, 38, 0.4);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between py-6 px-4">
+
+  <!-- TOP DECK: Title Header -->
+  <header class="w-full max-w-6xl flex flex-col items-center text-center gap-2 mb-4">
+    <div class="flex items-center gap-3">
+      <span class="text-[var(--accent)] text-3xl animate-bounce">⚔️</span>
+      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-wider retro-font-headline text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-white drop-shadow-[0_0_12px_rgba(242,125,38,0.65)]">
+        DUNGEON RIVALS
+      </h1>
+      <span class="text-[var(--accent)] text-3xl animate-bounce">⚔️</span>
+    </div>
+    <p class="text-slate-400 font-medium text-lg tracking-widest max-w-lg mt-1 font-mono">
+      2-PLAYER RETRO COMPETITIVE ARENA
+    </p>
+  </header>
+
+  <!-- MAIN AREA: Two column board with game center and instructions -->
+  <main class="w-full max-w-6xl flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 flex-grow font-mono">
+   
+    <!-- LEFT COLUMN: Instruction / Controls card -->
+    <div class="w-full lg:w-72 flex flex-col gap-4 self-stretch justify-between">
+     
+      <!-- P1 Control Block -->
+      <div class="p-4 rounded-xl border-2 border-[#2a2a32] bg-[#151619]/90 shadow-lg flex flex-col gap-2">
+        <div class="flex items-center gap-2 border-b border-blue-500/30 pb-2">
+          <span class="w-3 h-3 rounded-full bg-blue-500 animate-pulse"></span>
+          <h3 class="font-bold text-blue-400 text-lg tracking-wider retro-font-headline text-xs">PLAYER 1 (BLUE)</h3>
+        </div>
+        <div class="text-sm space-y-1.5 text-slate-300">
+          <div class="flex justify-between"><span>Up / Move Up:</span> <span class="bg-blue-950 px-1.5 py-0.5 rounded text-blue-300 border border-blue-800 font-bold">W</span></div>
+          <div class="flex justify-between"><span>Down / Move Down:</span> <span class="bg-blue-950 px-1.5 py-0.5 rounded text-blue-300 border border-blue-800 font-bold">S</span></div>
+          <div class="flex justify-between"><span>Left / Move Left:</span> <span class="bg-blue-950 px-1.5 py-0.5 rounded text-blue-300 border border-blue-800 font-bold">A</span></div>
+          <div class="flex justify-between"><span>Right / Move Right:</span> <span class="bg-blue-950 px-1.5 py-0.5 rounded text-blue-300 border border-blue-800 font-bold">D</span></div>
+          <div class="flex justify-between pt-1 border-t border-blue-500/15">
+            <span class="text-blue-400 font-bold">ATTACK:</span>
+            <span class="bg-blue-500 text-slate-950 px-2 py-0.5 rounded font-extrabold text-xs">KEY F</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- P2 Control Block -->
+      <div class="p-4 rounded-xl border-2 border-[#2a2a32] bg-[#151619]/90 shadow-lg flex flex-col gap-2">
+        <div class="flex items-center gap-2 border-b border-green-500/30 pb-2">
+          <span class="w-3 h-3 rounded-full bg-green-500 animate-pulse"></span>
+          <h3 class="font-bold text-green-400 text-lg tracking-wider retro-font-headline text-xs">PLAYER 2 (GREEN)</h3>
+        </div>
+        <div class="text-sm space-y-1.5 text-slate-300">
+          <div class="flex justify-between"><span>Up / Move Up:</span> <span class="bg-green-950 px-1.5 py-0.5 rounded text-green-300 border border-green-800 font-bold">▲ Arrow</span></div>
+          <div class="flex justify-between"><span>Down / Move Down:</span> <span class="bg-green-950 px-1.5 py-0.5 rounded text-green-300 border border-green-800 font-bold">▼ Arrow</span></div>
+          <div class="flex justify-between"><span>Left / Move Left:</span> <span class="bg-green-950 px-1.5 py-0.5 rounded text-green-300 border border-green-800 font-bold">◀ Arrow</span></div>
+          <div class="flex justify-between"><span>Right / Move Right:</span> <span class="bg-green-950 px-1.5 py-0.5 rounded text-green-300 border border-green-800 font-bold">▶ Arrow</span></div>
+          <div class="flex justify-between pt-1 border-t border-green-500/15">
+            <span class="text-green-400 font-bold">ATTACK:</span>
+            <span class="bg-green-500 text-slate-950 px-2 py-0.5 rounded font-extrabold text-xs">RIGHT SHIFT</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Legends & Rules Box -->
+      <div class="p-4 rounded-xl border-2 border-[#2a2a32] bg-[#151619]/90 text-xs text-slate-400 flex flex-col gap-2">
+        <h4 class="font-bold text-slate-300 border-b border-slate-800 pb-1.5 uppercase tracking-wider text-center">Dungeon Elements</h4>
+        <div class="grid grid-cols-2 gap-2 mt-1">
+          <div class="flex items-center gap-2">
+            <span class="w-3.5 h-3.5 bg-yellow-400 rounded-sm inline-block shadow-[0_0_5px_rgba(234,179,8,0.8)]"></span>
+            <span>Gold Chests</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-3.5 h-3.5 bg-red-600 rounded-sm inline-block shadow-[0_0_5px_rgba(220,38,38,0.8)]"></span>
+            <span>Spike Traps</span>
+          </div>
+          <div class="flex items-center gap-2 col-span-2">
+            <span class="w-3.5 h-3.5 bg-purple-600 rounded-sm inline-block"></span>
+            <span>Monsters (Slime/Skeleton/Demon)</span>
+          </div>
+        </div>
+        <p class="mt-2 text-[11px] leading-relaxed border-t border-slate-800 pt-1.5 text-center italic text-slate-500">
+          Tip: Hit monsters with timing. Killing Demons gives 40pts! Surviving with health above 50% awards +100pts bonus!
+        </p>
+      </div>
+
+    </div>
+
+    <!-- MIDDLE COLUMN: GAME MONITOR & HUD DISPLAY -->
+    <div class="flex-grow flex flex-col items-center gap-4">
+     
+      <!-- TOP HUD: Health status, Countdown timer -->
+      <div id="hud-top" class="w-[600px] flex items-center justify-between px-4 py-2.5 rounded-xl border-2 border-[#2a2a32] bg-[#151619] shadow-xl gap-4">
+       
+        <!-- P1 HUD Panel -->
+        <div class="flex flex-col flex-1 gap-1">
+          <div class="flex justify-between items-center text-sm font-bold text-blue-400 glow-blue">
+            <span>PLAYER 1</span>
+            <span id="p1-health-text" class="font-mono">100 HP</span>
+          </div>
+          <!-- Bar -->
+          <div class="w-full bg-slate-950 rounded-full h-3 border border-slate-800 overflow-hidden flex">
+            <div id="p1-health-bar" class="bg-blue-500 h-full transition-all duration-150 shadow-[0_0_6px_rgba(59,130,246,0.5)]" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <!-- TIMER SYSTEM BOX -->
+        <div class="flex flex-col items-center justify-center px-4 py-1 rounded bg-[#0c0c0e] border border-[var(--accent)]/40 min-w-[124px]">
+          <span class="text-[9px] uppercase tracking-widest text-[var(--accent)] font-bold">TIME REMAINING</span>
+          <span id="countdown-timer" class="text-2xl font-bold font-mono tracking-wider text-[var(--accent)] glow-gold">03:00</span>
+        </div>
+
+        <!-- P2 HUD Panel -->
+        <div class="flex flex-col flex-1 gap-1 items-end text-right">
+          <div class="flex justify-between w-full items-center text-sm font-bold text-green-400 glow-green">
+            <span id="p2-health-text" class="font-mono">100 HP</span>
+            <span>PLAYER 2</span>
+          </div>
+          <!-- Bar -->
+          <div class="w-full bg-slate-950 rounded-full h-3 border border-slate-800 overflow-hidden flex justify-end">
+            <div id="p2-health-bar" class="bg-green-500 h-full transition-all duration-150 shadow-[0_0_6px_rgba(34,197,94,0.5)]" style="width: 100%;"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- THE CORE GAME CONSOLE -->
+      <div class="crt-monitor relative bg-[#0c0c0e] w-[600px] h-[600px] rounded-2xl">
+        <div class="screen-glare"></div>
+        <canvas id="gameCanvas" width="600" height="600" class="crt-glass absolute top-0 left-0 block z-0 cursor-crosshair"></canvas>
+
+        <!-- GAME OVER / RESTART SCREEN OVERLAY -->
+        <div id="screen-gameover" class="absolute inset-0 bg-[#0c0c0e]/95 z-20 flex flex-col items-center justify-center p-8 text-center hidden">
+          <h2 class="text-[var(--accent)] text-3xl font-extrabold tracking-wider retro-font-headline animate-pulse glow-gold mb-4">
+            GAME OVER
+          </h2>
+         
+          <div class="mb-6 p-4 rounded-xl bg-[#151619] border border-[#2a2a32] shadow-xl max-w-sm w-full">
+            <div id="winner-announcement" class="text-xl font-bold text-[var(--accent)] retro-font-headline text-sm tracking-wider mb-3 glow-gold">
+              DRAW GAME!
+            </div>
+           
+            <div class="grid grid-cols-2 gap-4 text-slate-300 mt-4 border-t border-[#2a2a32] pt-3 font-mono text-sm">
+              <div class="text-left border-r border-[#2a2a32] pr-2">
+                <div class="text-blue-400 font-bold mb-1">PLAYER 1</div>
+                <div>SCORE: <span id="p1-final-score" class="text-white font-bold text-lg">0</span></div>
+                <div id="p1-survival-bonus" class="text-[10px] text-green-400/80 mt-1 italic hidden">+100 Survival Bonus!</div>
+              </div>
+              <div class="text-right pl-2">
+                <div class="text-green-400 font-bold mb-1">PLAYER 2</div>
+                <div>SCORE: <span id="p2-final-score" class="text-white font-bold text-lg">0</span></div>
+                <div id="p2-survival-bonus" class="text-[10px] text-green-400/80 mt-1 italic hidden">+100 Survival Bonus!</div>
+              </div>
+            </div>
+          </div>
+
+          <button id="btn-restart-from-over" class="artistic-btn px-8 py-3 text-sm">
+            PLAY AGAIN
+          </button>
+        </div>
+
+        <!-- MAIN MENU SCREEN OVERLAY -->
+        <div id="screen-menu" class="absolute inset-0 bg-[#0c0c0e]/95 z-20 flex flex-col items-center justify-center p-12 text-center">
+         
+          <!-- Animated Arcade Crest -->
+          <div class="p-6 rounded-2xl bg-[#151619]/95 border-2 border-[var(--accent)]/40 shadow-inner max-w-md w-full flex flex-col items-center gap-6 relative">
+            <div class="absolute -top-6 bg-[var(--accent)] text-[#0c0c0e] text-xs px-3 py-1 rounded font-bold tracking-widest uppercase">
+              Retro Game Room
+            </div>
+           
+            <div class="flex flex-col gap-1 items-center">
+              <h2 class="text-2xl font-bold retro-font-headline text-[var(--accent)] glow-gold">DUNGEON RIVALS</h2>
+              <p class="text-xs text-slate-400 tracking-widest mt-1">THE ULTRA-COMPETITIVE DUNGEON SLASHER</p>
+            </div>
+
+            <!-- Simple custom rules synopsis -->
+            <div class="space-y-1.5 text-slate-300 text-left text-xs font-mono w-full bg-[#0c0c0e]/90 p-4 rounded-lg border border-[#2a2a32]">
+              <div class="flex items-center gap-2"><span class="text-[var(--accent)]">◆</span> Explore corridors and get treasure.</div>
+              <div class="flex items-center gap-2"><span class="text-[var(--accent)]">◆</span> Hack & slash dangerous spawns of monsters.</div>
+              <div class="flex items-center gap-2"><span class="text-[var(--accent)]">◆</span> Avoid activated skull traps on the tile floors.</div>
+              <div class="flex items-center gap-2"><span class="text-[var(--accent)]">◆</span> Out-score your opponent within 3 minutes!</div>
+            </div>
+
+            <button id="btn-start" class="artistic-btn py-4 w-full text-sm">
+              START DUNGEON MATCH
+            </button>
+          </div>
+
+          <p class="text-slate-500 text-xs mt-6 font-mono tracking-widest">
+            *Pressing Start unlocks the Web Audio sound engine
+          </p>
+
+        </div>
+
+      </div>
+
+      <!-- BOTTOM HUD: Live Scores Display -->
+      <div id="hud-bottom" class="w-[600px] flex items-center justify-between px-5 py-3 rounded-xl border-2 border-[#2a2a32] bg-[#151619] shadow-xl">
+       
+        <!-- P1 Score -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-blue-950/80 border border-blue-500/40 flex items-center justify-center font-bold text-blue-400 text-xl retro-font-headline text-xs shadow-inner font-mono">
+            P1
+          </div>
+          <div class="flex flex-col">
+            <span class="text-[10px] text-blue-400/80 tracking-widest uppercase">P1 SCORE</span>
+            <span id="p1-score-display" class="text-3xl font-bold font-mono tracking-tight text-blue-300 glow-blue">0000</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 text-slate-500 text-xs">
+          <span>● COOP-COMPETITIVE ●</span>
+        </div>
+
+        <!-- P2 Score -->
+        <div class="flex items-center gap-3 text-right flex-row-reverse">
+          <div class="w-10 h-10 rounded-lg bg-green-950/80 border border-green-500/40 flex items-center justify-center font-bold text-green-400 text-xl retro-font-headline text-xs shadow-inner font-mono">
+            P2
+          </div>
+          <div class="flex flex-col">
+            <span class="text-[10px] text-green-400/80 tracking-widest uppercase">P2 SCORE</span>
+            <span id="p2-score-display" class="text-3xl font-bold font-mono tracking-tight text-green-300 glow-green text-right">0000</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- RIGHT/SECONDARY SIDE PANEL: Live Leaderboard or Round History -->
+    <div class="w-full lg:w-48 flex flex-col gap-4 self-stretch justify-start font-mono">
+     
+      <!-- Live Game Log console -->
+      <div class="p-4 rounded-xl border-2 border-[#2a2a32] bg-[#151619]/90 flex flex-col gap-2 flex-grow min-h-[220px]">
+        <h4 class="font-bold text-[var(--accent)] border-b border-[#2a2a32] pb-1.5 uppercase tracking-wider text-xs retro-font-headline text-[9px] text-center glow-gold">
+          Dungeon Logs
+        </h4>
+        <div id="log-console" class="flex-grow overflow-y-auto space-y-1.5 font-mono text-[11px] text-slate-400 max-h-[230px] pr-1">
+          <!-- Logs get injected here dynamically -->
+          <div class="text-slate-500 italic">Game lobby is ready...</div>
+          <div class="text-indigo-400 font-bold border-t border-slate-900 pt-1">Awaiting survivors!</div>
+        </div>
+      </div>
+
+      <!-- Quick Control Action Row -->
+      <div class="flex flex-col gap-2">
+        <button id="btn-reset-game-quick" class="artistic-btn py-2 text-[11px] w-full">
+          Reset Game
+        </button>
+        <button id="btn-music-synth-test" class="artistic-btn py-2 text-[11px] w-full">
+          🔊 Synth Test
+        </button>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- BOTTOM DECK: General Copyright Notice / Meta -->
+  <footer class="w-full max-w-6xl text-center text-xs text-slate-500 mt-6 border-t border-[#2a2a32] pt-4 font-mono uppercase tracking-widest">
+    <p>Dungeon Rivals © 2026. Made with HTML5 Canvas API & Web Audio Synthesizer.</p>
+  </footer>
+
+  <!-- CORE GAME SCRIPT BLOCK -->
+  <script>
+    /**
+     * ==========================================
+     * CLASS SOUND MANAGER (Retro Synth Web Audio API)
+     * ==========================================
+     */
+    class SoundManager {
+      constructor() {
+        this.ctx = null;
+        this.unlocked = false;
+        this.muted = false;
+      }
+
+      init() {
+        if (this.unlocked) return;
+        try {
+          window.AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+          this.unlocked = true;
+          console.log("Web Audio Context successfully initialized!");
+        } catch (e) {
+          console.warn("Web Audio API is not supported in this environment.", e);
+        }
+      }
+
+      // 1. General Button Click
+      playClick() {
+        if (!this.unlocked || this.muted) return;
+        const ctx = this.ctx;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'triangle';
+        o.frequency.setValueAtTime(150, ctx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(320, ctx.currentTime + 0.12);
+       
+        g.gain.setValueAtTime(0.12, ctx.currentTime);
+        g.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.12);
+       
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.start();
+        o.stop(ctx.currentTime + 0.12);
+      }
+
+      // 2. Dual-pickup coin sparkle chime
+      playTreasure() {
+        if (!this.unlocked || this.muted) return;
+        const ctx = this.ctx;
+        const now = ctx.currentTime;
+
+        const pulse = (freq, delay, dur) => {
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = 'sine';
+          o.frequency.setValueAtTime(freq, now + delay);
+          o.frequency.exponentialRampToValueAtTime(freq * 1.5, now + delay + dur);
+
+          g.gain.setValueAtTime(0.0, now);
+          g.gain.linearRampToValueAtTime(0.08, now + delay + 0.01);
+          g.gain.linearRampToValueAtTime(0.01, now + delay + dur);
+
+          o.connect(g);
+          g.connect(ctx.destination);
+          o.start(now + delay);
+          o.stop(now + delay + dur);
+        };
+
+        pulse(523.25, 0, 0.15); // C5
+        pulse(659.25, 0.08, 0.18); // E5
+        pulse(1046.5, 0.16, 0.25); // C6
+      }
+
+      // 3. Harsh noise/buzz trap sound
+      playTrap() {
+        if (!this.unlocked || this.muted) return;
+        const ctx = this.ctx;
+        const now = ctx.currentTime;
+        const dur = 0.35;
+
+        // Draw custom noise buffer
+        const bufferSize = ctx.sampleRate * dur;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(1000, now);
+        filter.frequency.exponentialRampToValueAtTime(220, now + dur);
+
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.25, now);
+        g.gain.linearRampToValueAtTime(0.01, now + dur);
+
+        noise.connect(filter);
+        filter.connect(g);
+        g.connect(ctx.destination);
+
+        noise.start(now);
+        noise.stop(now + dur);
+      }
+
+      // 4. Whoosh melee attack sound
+      playAttack() {
+        if (!this.unlocked || this.muted) return;
+        const ctx = this.ctx;
+        const now = ctx.currentTime;
+        const dur = 0.18;
+
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'triangle';
+        o.frequency.setValueAtTime(510, now);
+        o.frequency.exponentialRampToValueAtTime(80, now + dur);
+
+        g.gain.setValueAtTime(0.2, now);
+        g.gain.linearRampToValueAtTime(0.01, now + dur);
+
+        o.connect(g);
+        g.connect(ctx.destination);
+
+        o.start(now);
+        o.stop(now + dur);
+      }
+
+      // 5. Hard monster/player hit splat
+      playHit() {
+        if (!this.unlocked || this.muted) return;
+        const ctx = this.ctx;
+        const now = ctx.currentTime;
+       
+        const o1 = ctx.createOscillator();
+        const g1 = ctx.createGain();
+        o1.type = 'sawtooth';
+        o1.frequency.setValueAtTime(180, now);
+        o1.frequency.linearRampToValueAtTime(60, now + 0.15);
+
+        g1.gain.setValueAtTime(0.18, now);
+        g1.gain.linearRampToValueAtTime(0.01, now + 0.15);
+
+        o1.connect(g1);
+        g1.connect(ctx.destination);
+        o1.start(now);
+        o1.stop(now + 0.15);
+      }
+
+      // 6. Retro collapse/death crash
+      playMonsterDeath() {
+        if (!this.unlocked || this.muted) return;
+        const ctx = this.ctx;
+        const now = ctx.currentTime;
+        const dur = 0.45;
+
+        // Draw low noisy explosion
+        const bufferSize = ctx.sampleRate * dur;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(300, now);
+        filter.frequency.exponentialRampToValueAtTime(60, now + dur);
+
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.3, now);
+        g.gain.linearRampToValueAtTime(0.01, now + dur);
+
+        noise.connect(filter);
+        filter.connect(g);
+        g.connect(ctx.destination);
+
+        noise.start(now);
+        noise.stop(now + dur);
+      }
+
+      // 7. Victory level finished chime
+      playVictory() {
+        if (!this.unlocked || this.muted) return;
+        const ctx = this.ctx;
+        const now = ctx.currentTime;
+
+        const playNote = (freq, start, duration) => {
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = 'square';
+          o.frequency.setValueAtTime(freq, now + start);
+
+          g.gain.setValueAtTime(0.0, now);
+          g.gain.linearRampToValueAtTime(0.08, now + start + 0.01);
+          g.gain.linearRampToValueAtTime(0.06, now + start + duration - 0.02);
+          g.gain.linearRampToValueAtTime(0.001, now + start + duration);
+
+          o.connect(g);
+          g.connect(ctx.destination);
+          o.start(now + start);
+          o.stop(now + start + duration);
+        };
+
+        const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50]; // C Major Arpeggio
+        notes.forEach((freq, index) => {
+          playNote(freq, index * 0.1, 0.4);
+        });
+      }
+    }
+
+    const soundManager = new SoundManager();
+
+
+    /**
+     * ==========================================
+     * CLASS PARTICLE
+     * ==========================================
+     */
+    class Particle {
+      constructor(x, y, color, type = 'dust') {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.type = type; // 'dust', 'sparkle', 'blood', 'slash'
+       
+        this.vx = (Math.random() - 0.5) * 3;
+        this.vy = (Math.random() - 0.5) * 3;
+       
+        if (type === 'blood') {
+          this.vx = (Math.random() - 0.5) * 4;
+          this.vy = (Math.random() - 0.6) * 5 - 2; // sprayed up slightly
+        } else if (type === 'sparkle') {
+          this.vx = (Math.random() - 0.5) * 1.5;
+          this.vy = -Math.random() * 2 - 0.5; // floats up
+        }
+
+        this.size = Math.random() * 3.5 + 1.5;
+        this.life = 1.0;
+        this.decay = Math.random() * 0.04 + 0.02;
+      }
+
+      update(gravityEnabled = false) {
+        this.x += this.vx;
+        this.y += this.vy;
+        if (gravityEnabled) {
+          this.vy += 0.2; // fall slowly
+        }
+        this.life -= this.decay;
+      }
+
+      draw(ctx) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, this.life);
+        ctx.fillStyle = this.color;
+       
+        if (this.type === 'sparkle') {
+          // Draw diamond like gem sparkle
+          ctx.beginPath();
+          ctx.moveTo(this.x, this.y - this.size);
+          ctx.lineTo(this.x + this.size, this.y);
+          ctx.lineTo(this.x, this.y + this.size);
+          ctx.lineTo(this.x - this.size, this.y);
+          ctx.closePath();
+          ctx.fill();
+        } else {
+          // Draw round pixels
+          ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
+        }
+        ctx.restore();
+      }
+    }
+
+
+    /**
+     * ==========================================
+     * CLASS FLOATING TEXT
+     * ==========================================
+     */
+    class FloatingText {
+      constructor(x, y, text, color) {
+        this.x = x;
+        this.y = y;
+        this.text = text;
+        this.color = color;
+        this.vy = -0.8;
+        this.life = 1.0;
+        this.decay = 0.025;
+      }
+
+      update() {
+        this.y += this.vy;
+        this.life -= this.decay;
+      }
+
+      draw(ctx) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, this.life);
+        ctx.fillStyle = this.color;
+        ctx.font = 'bold 13px "Share Tech Mono", monospace';
+        ctx.shadowColor = 'black';
+        ctx.shadowBlur = 4;
+        ctx.fillText(this.text, this.x, this.y);
+        ctx.restore();
+      }
+    }
+
+
+    /**
+     * ==========================================
+     * CLASS TRAP
+     * ==========================================
+     */
+    class Trap {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.cooldown = 0; // cooldown timer in ms
+        this.triggeredAnim = 0; // frames to animate teeth standing up which trips P1/P2
+      }
+
+      trigger() {
+        this.cooldown = 5000; // 5 seconds lock
+        this.triggeredAnim = 30; // 30 frames active spikes animation
+        soundManager.playTrap();
+      }
+
+      update(deltaTime) {
+        if (this.cooldown > 0) this.cooldown -= deltaTime;
+        if (this.triggeredAnim > 0) this.triggeredAnim--;
+      }
+
+      draw(ctx, tileSize) {
+        const px = this.x * tileSize;
+        const py = this.y * tileSize;
+
+        ctx.save();
+       
+        // Base plate
+        ctx.fillStyle = "#3a344d";
+        ctx.fillRect(px + 4, py + 4, tileSize - 8, tileSize - 8);
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = "#1a1626";
+        ctx.strokeRect(px + 4, py + 4, tileSize - 8, tileSize - 8);
+       
+        ctx.fillStyle = "#4a4460";
+        ctx.fillRect(px + tileSize/2 - 4, py + tileSize/2 - 4, 8, 8);
+
+        // Trip spikes
+        if (this.triggeredAnim > 0 || this.cooldown > 4000) {
+          // Sharp extended spikes
+          ctx.strokeStyle = "#e11d48"; // trigger flash
+          ctx.lineWidth = 2.5;
+
+          for (let i = 0; i < 4; i++) {
+            const ox = (i % 2 === 0) ? -7 : 7;
+            const oy = (i < 2) ? -7 : 7;
+            ctx.beginPath();
+            ctx.moveTo(px + tileSize/2 + ox, py + tileSize/2 + oy);
+            ctx.lineTo(px + tileSize/2 + ox, py + tileSize/2 + oy - 12);
+            ctx.stroke();
+          }
+
+          // Red aura
+          ctx.fillStyle = "rgba(239, 68, 68, 0.15)";
+          ctx.fillRect(px, py, tileSize, tileSize);
+        } else {
+          // Flatten teeth
+          ctx.strokeStyle = "#6b7280";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(px + 8, py + 8);
+          ctx.lineTo(px + 12, py + 12);
+          ctx.moveTo(px + tileSize - 8, py + 8);
+          ctx.lineTo(px + tileSize - 12, py + 12);
+          ctx.moveTo(px + 8, py + tileSize - 8);
+          ctx.lineTo(px + 12, py + tileSize - 12);
+          ctx.moveTo(px + tileSize - 8, py + tileSize - 8);
+          ctx.lineTo(px + tileSize - 12, py + tileSize - 12);
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+    }
+
+
+    /**
+     * ==========================================
+     * CLASS TREASURE
+     * ==========================================
+     */
+    class Treasure {
+      constructor(x, y, type = "small") {
+        this.x = x;
+        this.y = y;
+        this.type = type; // "small", "medium", "rare"
+        this.bobOffset = Math.random() * 100;
+       
+        switch (type) {
+          case "small":
+            this.points = 10;
+            this.color = "#fbbf24"; // golden yellow
+            break;
+          case "medium":
+            this.points = 25;
+            this.color = "#f97316"; // rich orange
+            break;
+          case "rare":
+            this.points = 50;
+            this.color = "#06b6d4"; // glowing bright cyan
+            break;
+        }
+      }
+
+      draw(ctx, tileSize, time) {
+        const px = this.x * tileSize + tileSize/2;
+        const py = this.y * tileSize + tileSize/2;
+       
+        // Float animation
+        const dy = Math.sin((time + this.bobOffset) * 0.005) * 4;
+
+        ctx.save();
+       
+        // Aura glow behind
+        let auraColor = "rgba(251, 191, 36, 0.25)";
+        if (this.type === "medium") auraColor = "rgba(249, 115, 22, 0.28)";
+        if (this.type === "rare") auraColor = "rgba(6, 182, 212, 0.35)";
+       
+        ctx.beginPath();
+        ctx.arc(px, py + dy, 12, 0, Math.PI * 2);
+        ctx.fillStyle = auraColor;
+        ctx.fill();
+
+        if (this.type === "small") {
+          // Draw tiny golden pile or small coin stack
+          ctx.fillStyle = "#f59e0b";
+          ctx.fillRect(px - 6, py + dy - 2, 12, 5);
+          ctx.fillStyle = "#fbbf24";
+          ctx.fillRect(px - 4, py + dy - 5, 8, 3);
+          ctx.fillStyle = "#fef08a";
+          ctx.fillRect(px - 2, py + dy - 8, 4, 3);
+        } else if (this.type === "medium") {
+          // Draw detailed treasure chalice / small wooden chest
+          ctx.fillStyle = "#854d0e"; // dark brown base
+          ctx.fillRect(px - 8, py + dy - 4, 16, 8);
+          ctx.fillStyle = "#d97706"; // gold rim
+          ctx.fillRect(px - 8, py + dy - 8, 16, 4);
+          ctx.fillStyle = "#eab308"; // metal latch
+          ctx.fillRect(px - 2, py + dy - 5, 4, 4);
+        } else {
+          // Draw multifaceted diamond gem
+          ctx.fillStyle = "#0284c7"; // edge
+          ctx.beginPath();
+          ctx.moveTo(px, py + dy - 10);
+          ctx.lineTo(px + 7, py + dy - 3);
+          ctx.lineTo(px, py + dy + 5);
+          ctx.lineTo(px - 7, py + dy - 3);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.fillStyle = "#06b6d4"; // core jewel
+          ctx.beginPath();
+          ctx.moveTo(px, py + dy - 7);
+          ctx.lineTo(px + 4, py + dy - 3);
+          ctx.lineTo(px, py + dy + 2);
+          ctx.lineTo(px - 4, py + dy - 3);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.fillStyle = "#e0f2fe"; // highlight spark shine
+          ctx.fillRect(px - 2, py + dy - 4, 2, 2);
+        }
+
+        ctx.restore();
+      }
+    }
+
+
+    /**
+     * ==========================================
+     * CLASS MONSTER
+     * ==========================================
+     */
+    class Monster {
+      constructor(x, y, type = "slime") {
+        this.x = x;
+        this.y = y;
+        this.visualX = x;
+        this.visualY = y;
+        this.type = type; // "slime", "skeleton", "demon"
+        this.facing = "down";
+        this.damageFlash = 0; // frames
+        this.path = [];
+        this.pathTick = Math.random() * 40; // stagger BFS recalculations
+
+        switch (type) {
+          case "slime":
+            this.maxHp = 20;
+            this.hp = 20;
+            this.speed = 0.5; // moves slow
+            this.value = 15;
+            this.color = "#9333ea"; // purple
+            break;
+          case "skeleton":
+            this.maxHp = 40;
+            this.hp = 40;
+            this.speed = 0.75; // medium
+            this.value = 25;
+            this.color = "#d1d5db"; // greyish bones
+            break;
+          case "demon":
+            this.maxHp = 60;
+            this.hp = 60;
+            this.speed = 1; // rapid alert speed
+            this.value = 40;
+            this.color = "#dc2626"; // blood red
+            break;
+        }
+      }
+
+      takeDamage(amount) {
+        this.hp -= amount;
+        this.damageFlash = 12; // 12 frames white flash
+        soundManager.playHit();
+      }
+
+      update(deltaTime, gameMap, players, time) {
+        if (this.damageFlash > 0) this.damageFlash--;
+
+        // Smooth visual move to grid coordinate
+        const dx = this.x - this.visualX;
+        const dy = this.y - this.visualY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        const moveAmount = 0.05 * this.speed;
+        if (dist > moveAmount) {
+          this.visualX += (dx / dist) * moveAmount;
+          this.visualY += (dy / dist) * moveAmount;
+        } else {
+          this.visualX = this.x;
+          this.visualY = this.y;
+        }
+
+        // Only search paths when fully resting on a tile
+        if (this.visualX === this.x && this.visualY === this.y) {
+          this.pathTick++;
+          if (this.pathTick >= 15) {
+            this.pathTick = 0;
+            this.computeAISearch(gameMap, players);
+          }
+
+          // Advance one tile along path
+          if (this.path && this.path.length > 0) {
+            const nextTile = this.path.shift();
+            // Verify adjacent move is floor
+            if (gameMap.isFloor(nextTile.x, nextTile.y)) {
+              if (nextTile.x < this.x) this.facing = "left";
+              if (nextTile.x > this.x) this.facing = "right";
+              if (nextTile.y < this.y) this.facing = "up";
+              if (nextTile.y > this.y) this.facing = "down";
+
+              this.x = nextTile.x;
+              this.y = nextTile.y;
+            }
+          }
+        }
+      }
+
+      computeAISearch(gameMap, players) {
+        // Track down the closest living player
+        let closestPlayer = null;
+        let minDist = Infinity;
+
+        players.forEach(p => {
+          if (p.hp > 0) {
+            const d = Math.abs(p.x - this.x) + Math.abs(p.y - this.y); // Manhattan
+            if (d < minDist) {
+              minDist = d;
+              closestPlayer = p;
+            }
+          }
+        });
+
+        if (!closestPlayer) {
+          this.path = [];
+          return;
+        }
+
+        // BFS pathfinder
+        this.path = gameMap.findBFSPath(this.x, this.y, closestPlayer.x, closestPlayer.y);
+      }
+
+      draw(ctx, tileSize, time) {
+        // Render position interpolated
+        const px = this.visualX * tileSize + tileSize/2;
+        const py = this.visualY * tileSize + tileSize/2;
+
+        ctx.save();
+
+        // 1. Dead eye shadow
+        ctx.beginPath();
+        ctx.ellipse(px, py + 12, 10, 4, 0, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(0,0,0,0.4)";
+        ctx.fill();
+
+        // 2. Hit composite mode flash
+        if (this.damageFlash > 0 && Math.floor(time / 4) % 2 === 0) {
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.arc(px, py, 11, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+          return;
+        }
+
+        if (this.type === "slime") {
+          // Bouncy Purple Slime Drawing
+          const cycle = (time * 0.006) % (Math.PI * 2);
+          const bounceFactorY = 1.0 + Math.sin(cycle) * 0.12;
+          const bounceFactorX = 1.0 - Math.sin(cycle) * 0.08;
+
+          ctx.save();
+          ctx.translate(px, py + 12);
+          ctx.scale(bounceFactorX, bounceFactorY);
+         
+          ctx.beginPath();
+          ctx.arc(0, -12, 11, Math.PI, 0, false);
+          ctx.quadraticCurveTo(11, 0, 0, 0);
+          ctx.quadraticCurveTo(-11, 0, -11, -12);
+          ctx.closePath();
+          ctx.fillStyle = "#a855f7"; // purple Slime body
+          ctx.fill();
+
+          ctx.fillStyle = "#c084fc"; // specular shine
+          ctx.fillRect(-6, -14, 4, 4);
+
+          // Slime derp eyes
+          ctx.fillStyle = "#1e1b4b";
+          ctx.fillRect(-4, -8, 2, 2.5);
+          ctx.fillRect(2, -8, 2, 2.5);
+          ctx.restore();
+
+        } else if (this.type === "skeleton") {
+          // Classic Dungeon Skeleton
+          ctx.fillStyle = "#e5e7eb"; // off white bones
+          ctx.fillRect(px - 6, py - 10, 12, 10); // skull head
+         
+          // Rib cage segment
+          ctx.fillStyle = "#9ca3af";
+          ctx.fillRect(px - 4, py + 1, 8, 7);
+          ctx.fillRect(px - 1, py - 1, 2, 12); // spine
+
+          // Dark hollow eye sockets
+          ctx.fillStyle = "#0f172a";
+          ctx.fillRect(px - 4, py - 7, 3, 3);
+          ctx.fillRect(px + 1, py - 7, 3, 3);
+
+          ctx.fillStyle = "#ef4444"; // evil red pupils
+          ctx.fillRect(px - 3, py - 6, 1, 1);
+          ctx.fillRect(px + 2, py - 6, 1, 1);
+
+          // Rusty blade
+          ctx.strokeStyle = "#94a3b8";
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(px + 6, py + 2);
+          ctx.lineTo(px + 13, py - 5);
+          ctx.stroke();
+
+        } else if (this.type === "demon") {
+          // Fast Dark-Red Demon
+          ctx.fillStyle = "#dc2626"; // Crimson
+          ctx.beginPath();
+          ctx.arc(px, py, 11, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Black Horns
+          ctx.fillStyle = "#111827";
+          ctx.beginPath();
+          ctx.moveTo(px - 7, py - 9);
+          ctx.lineTo(px - 11, py - 16);
+          ctx.lineTo(px - 2, py - 11);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.moveTo(px + 7, py - 9);
+          ctx.lineTo(px + 11, py - 16);
+          ctx.lineTo(px + 2, py - 11);
+          ctx.fill();
+
+          // Angry yellow slits eyes
+          ctx.fillStyle = "#facc15";
+          ctx.beginPath();
+          ctx.moveTo(px - 6, py - 4);
+          ctx.lineTo(px - 1, py - 2);
+          ctx.lineTo(px - 6, py - 1);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.moveTo(px + 6, py - 4);
+          ctx.lineTo(px + 1, py - 2);
+          ctx.lineTo(px + 6, py - 1);
+          ctx.fill();
+
+          // Demonic flapping wings
+          ctx.fillStyle = "#1e1b4b";
+          const wingFlickOffset = Math.sin(time * 0.02) * 5;
+          ctx.beginPath();
+          ctx.moveTo(px - 8, py);
+          ctx.lineTo(px - 20, py - 6 + wingFlickOffset);
+          ctx.lineTo(px - 12, py + 4);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.moveTo(px + 8, py);
+          ctx.lineTo(px + 20, py - 6 + wingFlickOffset);
+          ctx.lineTo(px + 12, py + 4);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        // 3. Health bar display
+        if (this.hp < this.maxHp) {
+          const barWidth = 20;
+          const pct = this.hp / this.maxHp;
+          ctx.fillStyle = "rgba(0,0,0,0.6)";
+          ctx.fillRect(px - barWidth/2, py - 19, barWidth, 3.5);
+          ctx.fillStyle = "#ec4899"; // pink monster health fill
+          ctx.fillRect(px - barWidth/2, py - 19, barWidth * pct, 3.5);
+        }
+
+        ctx.restore();
+      }
+    }
+
+
+    /**
+     * ==========================================
+     * CLASS PLAYER
+     * ==========================================
+     */
+    class Player {
+      constructor(id, color, startX, startY) {
+        this.id = id;
+        this.color = color;
+        this.x = startX;
+        this.y = startY;
+        this.visualX = startX;
+        this.visualY = startY;
+       
+        this.hp = 100;
+        this.score = 0;
+        this.attackCooldown = 0; // ms
+        this.facing = "down";
+        this.damageFlash = 0; // frames
+        this.respawnTimer = 0; // ms remaining when dead
+        this.swingAnimationRemaining = 0; // attack swipe frames
+       
+        this.bobCycle = 0;
+        this.isMoving = false;
+      }
+
+      takeDamage(amount) {
+        if (this.respawnTimer > 0) return; // invulnerability
+        this.hp = Math.max(0, this.hp - amount);
+        this.damageFlash = 12;
+        soundManager.playHit();
+      }
+
+      update(deltaTime) {
+        if (this.attackCooldown > 0) this.attackCooldown -= deltaTime;
+        if (this.respawnTimer > 0) this.respawnTimer -= deltaTime;
+        if (this.damageFlash > 0) this.damageFlash--;
+        if (this.swingAnimationRemaining > 0) this.swingAnimationRemaining--;
+
+        // Transition visual interpolator
+        const dx = this.x - this.visualX;
+        const dy = this.y - this.visualY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Constant speed interpolation grid crawl
+        const lerpSpeed = 0.22;
+        if (dist > 0.01) {
+          this.visualX += dx * lerpSpeed;
+          this.visualY += dy * lerpSpeed;
+          this.isMoving = true;
+          this.bobCycle += 0.4;
+        } else {
+          this.visualX = this.x;
+          this.visualY = this.y;
+          this.isMoving = false;
+          this.bobCycle = 0;
+        }
+      }
+
+      draw(ctx, tileSize, time) {
+        if (this.respawnTimer > 0) {
+          // Do not draw player if dead, except maybe a ghostly circle
+          return;
+        }
+
+        const px = this.visualX * tileSize + tileSize/2;
+        const py = this.visualY * tileSize + tileSize/2;
+       
+        // Bob factor
+        const bob = this.isMoving ? Math.abs(Math.sin(this.bobCycle)) * 2.5 : 0;
+
+        ctx.save();
+
+        // 1. Ground Shadow
+        ctx.beginPath();
+        ctx.ellipse(px, py + 12, 11, 4, 0, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        ctx.fill();
+
+        // 2. Damage red flash effect
+        if (this.damageFlash > 0 && Math.floor(time / 4) % 2 === 0) {
+          ctx.fillStyle = "#ff5555";
+          ctx.beginPath();
+          ctx.arc(px, py - bob, 12, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+          return;
+        }
+
+        // 3. Player body drawing (Retro pixel clothes)
+        ctx.fillStyle = this.color;
+        ctx.fillRect(px - 8, py - 4 - bob, 16, 14); // tunic clothes
+        ctx.strokeStyle = "#110e20";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(px - 8, py - 4 - bob, 16, 14);
+
+        // Brown thick belt line
+        ctx.fillStyle = "#78350f";
+        ctx.fillRect(px - 8, py + 4 - bob, 16, 3.5);
+
+        // Helmet/Headdress
+        ctx.fillStyle = "#d1d5db"; // silver metal helmets
+        ctx.fillRect(px - 7, py - 11 - bob, 14, 8);
+        ctx.fillStyle = this.id === 1 ? "#3b82f6" : "#22c55e"; // blue feather/green feather crest
+        ctx.fillRect(px - 2, py - 15 - bob, 4, 4);
+
+        // Human Head (Face)
+        ctx.fillStyle = "#fbcfe8"; // peach skin
+        ctx.fillRect(px - 6, py - 8 - bob, 12, 5);
+
+        // Directional Facing Eyes
+        ctx.fillStyle = "#0f172a";
+        let eyeOffsetLeftX = -3;
+        let eyeOffsetRightX = 1;
+
+        if (this.facing === "left") {
+          eyeOffsetLeftX = -5;
+          eyeOffsetRightX = -2;
+        } else if (this.facing === "right") {
+          eyeOffsetLeftX = 1;
+          eyeOffsetRightX = 4;
+        } else if (this.facing === "up") {
+          // Draw back of helmet, hide eyes entirely
+          ctx.fillStyle = "#9ca3af";
+          ctx.fillRect(px - 6, py - 8 - bob, 12, 5);
+          eyeOffsetLeftX = 999; // invisible
+          eyeOffsetRightX = 999;
+        }
+
+        if (eyeOffsetLeftX < 100) {
+          ctx.fillRect(px + eyeOffsetLeftX, py - 7 - bob, 2, 2.5);
+          ctx.fillRect(px + eyeOffsetRightX, py - 7 - bob, 2, 2.5);
+        }
+
+        // Small steel sword weapon sheathed on side
+        ctx.fillStyle = "#94a3b8";
+        if (this.facing === "left") {
+          ctx.fillRect(px + 7, py - 2 - bob, 3, 10);
+        } else {
+          ctx.fillRect(px - 10, py - 2 - bob, 3, 10);
+        }
+
+        // Player Tag indicator text (P1 / P2)
+        ctx.fillStyle = this.color;
+        ctx.font = 'bold 9px "Press Start 2P", monospace';
+        ctx.textAlign = "center";
+       
+        ctx.shadowColor = 'black';
+        ctx.shadowBlur = 3;
+        ctx.fillText(`P${this.id}`, px, py - 19 - bob);
+
+        // 4. Draw sword slash swipe crescent in context
+        if (this.swingAnimationRemaining > 0) {
+          const slashProgress = this.swingAnimationRemaining / 10; // scale 1 to 0
+          ctx.save();
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+          ctx.shadowColor = this.color;
+          ctx.shadowBlur = 10;
+          ctx.lineWidth = 3.5;
+          ctx.beginPath();
+
+          // Draw crescent in target heading direction
+          let angleStart = 0;
+          let angleEnd = 0;
+
+          if (this.facing === "right") {
+            angleStart = -Math.PI / 3;
+            angleEnd = Math.PI / 3;
+          } else if (this.facing === "left") {
+            angleStart = Math.PI - Math.PI / 3;
+            angleEnd = Math.PI + Math.PI / 3;
+          } else if (this.facing === "up") {
+            angleStart = -Math.PI/2 - Math.PI/3;
+            angleEnd = -Math.PI/2 + Math.PI/3;
+          } else {
+            angleStart = Math.PI/2 - Math.PI/3;
+            angleEnd = Math.PI/2 + Math.PI/3;
+          }
+
+          ctx.arc(px, py - 2, 22, angleStart, angleEnd);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        ctx.restore();
+      }
+    }
+
+
+    /**
+     * ==========================================
+     * CLASS DUNGEON GAME MAP
+     * ==========================================
+     */
+    class DungeonMap {
+      constructor(cols, rows) {
+        this.cols = cols;
+        this.rows = rows;
+        this.grid = Array(rows).fill(null).map(() => Array(cols).fill(1)); // default all solid walls (1)
+        this.spawners = [];
+        this.carveMap();
+      }
+
+      carveMap() {
+        // Build clear layout symmetrically
+        const digRoom = (x1, y1, w, h) => {
+          for (let y = y1; y < y1 + h; y++) {
+            for (let x = x1; x < x1 + w; x++) {
+              if (y > 0 && y < this.rows - 1 && x > 0 && x < this.cols - 1) {
+                this.grid[y][x] = 0; // Empty Floor
+              }
+            }
+          }
+        };
+
+        const digHLine = (x1, x2, y) => {
+          const start = Math.min(x1, x2);
+          const end = Math.max(x1, x2);
+          for (let x = start; x <= end; x++) {
+            if (y > 0 && y < this.rows - 1 && x > 0 && x < this.cols - 1) {
+              this.grid[y][x] = 0;
+            }
+          }
+        };
+
+        const digVLine = (y1, y2, x) => {
+          const start = Math.min(y1, y2);
+          const end = Math.max(y1, y2);
+          for (let y = start; y <= end; y++) {
+            if (y > 0 && y < this.rows - 1 && x > 0 && x < this.cols - 1) {
+              this.grid[y][x] = 0;
+            }
+          }
+        };
+
+        // Standard Rooms
+        digRoom(1, 1, 4, 4); // Top-Left room
+        digRoom(10, 1, 4, 4); // Top-Right room
+        digRoom(1, 10, 4, 4); // Bottom-Left room
+        digRoom(10, 10, 4, 4); // Bottom-Right room
+        digRoom(5, 5, 5, 5); // Central Colosseum Arena
+
+        // Symmetric Corridors connecting edge rooms with central arena
+        digHLine(4, 10, 2);  // High boundary connector
+        digHLine(4, 10, 12); // Low boundary connector
+        digVLine(4, 10, 2);  // Left side connector
+        digVLine(4, 10, 12); // Right side connector
+
+        // Connect rooms directly to center arena and create rich cross roads
+        digHLine(2, 5, 7);   // Left tunnel into center
+        digHLine(9, 12, 7);  // Right tunnel into center
+        digVLine(2, 5, 7);   // Top tunnel into center
+        digVLine(9, 12, 7);  // Bottom tunnel into center
+
+        // Inject 4 solid temple columns into center arena for cover block strategics
+        this.grid[6][6] = 1;
+        this.grid[8][6] = 1;
+        this.grid[6][8] = 1;
+        this.grid[8][8] = 1;
+
+        // Establish 5 designated, symmetric Spawning points for standard monster logic
+        this.spawners = [
+          { x: 2, y: 2 },   // Top-Left corner spawner node
+          { x: 12, y: 2 },  // Top-Right corner spawner node
+          { x: 2, y: 12 },  // Bottom-Left corner spawner node
+          { x: 12, y: 12 }, // Bottom-Right corner spawner node
+          { x: 7, y: 7 }    // Central Gladiator focus spawner node
+        ];
+      }
+
+      isFloor(x, y) {
+        if (x < 0 || x >= this.cols || y < 0 || y >= this.rows) return false;
+        return this.grid[y][x] === 0;
+      }
+
+      // BFS shortest path finder algorithm for reliable retro monster hunting
+      findBFSPath(startX, startY, targetX, targetY) {
+        if (startX === targetX && startY === targetY) return [];
+
+        const queue = [];
+        const visited = Array(this.rows).fill(null).map(() => Array(this.cols).fill(false));
+        const parent = Array(this.rows).fill(null).map(() => Array(this.cols).fill(null));
+
+        queue.push({ x: startX, y: startY });
+        visited[startY][startX] = true;
+
+        let reached = false;
+        const dirs = [
+          { dx: 0, dy: -1 }, // Up
+          { dx: 0, dy: 1 },  // Down
+          { dx: -1, dy: 0 }, // Left
+          { dx: 1, dy: 0 }   // Right
+        ];
+
+        while (queue.length > 0) {
+          const current = queue.shift();
+
+          if (current.x === targetX && current.y === targetY) {
+            reached = true;
+            break;
+          }
+
+          for (let i = 0; i < dirs.length; i++) {
+            const nx = current.x + dirs[i].dx;
+            const ny = current.y + dirs[i].dy;
+
+            if (nx >= 0 && nx < this.cols && ny >= 0 && ny < this.rows) {
+              if (!visited[ny][nx] && this.grid[ny][nx] === 0) {
+                visited[ny][nx] = true;
+                parent[ny][nx] = { x: current.x, y: current.y };
+                queue.push({ x: nx, y: ny });
+              }
+            }
+          }
+        }
+
+        if (!reached) {
+          // Return simple line-of-sight vector next-move step if BFS path fails completely
+          return [];
+        }
+
+        // Trace paths back
+        const path = [];
+        let curr = { x: targetX, y: targetY };
+        while (curr && !(curr.x === startX && curr.y === startY)) {
+          path.unshift(curr);
+          curr = parent[curr.y][curr.x];
+        }
+
+        return path;
+      }
+    }
+
+
+    /**
+     * ==========================================
+     * GENERAL INDIE GAME CORE ENGINE
+     * ==========================================
+     */
+    class GameEngine {
+      constructor() {
+        this.canvas = document.getElementById("gameCanvas");
+        this.ctx = this.canvas.getContext("2d");
+        this.tileSize = 40; // 600px width divided by 15 col grid size = 40px tile standard
+       
+        this.map = new DungeonMap(15, 15);
+        this.players = [];
+        this.monsters = [];
+        this.treasures = [];
+        this.traps = [];
+       
+        this.particles = [];
+        this.floatingTexts = [];
+
+        this.gameTimeRemaining = 180000; // 3 minutes in milliseconds (180000)
+        this.state = "menu"; // "menu", "playing", "gameover"
+        this.timerInterval = null;
+
+        // Particle sparkle schedule offsets
+        this.lastTreasureSparkle = 0;
+
+        // Custom logs arrays
+        this.logsConsole = document.getElementById("log-console");
+
+        // Key states records map
+        this.keys = {};
+
+        // Track time variables
+        this.lastTime = 0;
+
+        // Establish Event Listeners
+        this.setupEventHandlers();
+       
+        // Spawn symmetric environmental default traps
+        this.deployStaticTraps();
+      }
+
+      deployStaticTraps() {
+        // Place 6 discrete spike traps in corridors to increase tactical risk factors
+        const trapPositions = [
+          { x: 2, y: 5 },
+          { x: 12, y: 5 },
+          { x: 2, y: 9 },
+          { x: 12, y: 9 },
+          { x: 5, y: 2 },
+          { x: 9, y: 12 }
+        ];
+
+        trapPositions.forEach(pos => {
+          this.traps.push(new Trap(pos.x, pos.y));
+        });
+      }
+
+      addLog(message, colorClass = "text-slate-400") {
+        const item = document.createElement("div");
+        item.className = `${colorClass} font-mono text-[11px] leading-tight pb-0.5 border-b border-indigo-950/20`;
+        item.innerHTML = `[${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}] ${message}`;
+        this.logsConsole.appendChild(item);
+       
+        // Auto Scroll elements
+        this.logsConsole.scrollTop = this.logsConsole.scrollHeight;
+      }
+
+      initializeMatch() {
+        // Instantiate Player 1 & Player 2
+        this.players = [
+          new Player(1, "#3b82f6", 1, 1),    // Top Left Room Start
+          new Player(2, "#22c55e", 13, 13)   // Bottom Right Room Start
+        ];
+
+        this.monsters = [];
+        this.treasures = [];
+       
+        // Feed 5 random initial treasures around the corridors
+        for (let i = 0; i < 5; i++) {
+          this.spawnNewTreasure();
+        }
+
+        // Spawn starting batch of slimes / skeletons
+        this.spawnInitialMonsters();
+
+        // Standard 3 minutes remaining
+        this.gameTimeRemaining = 180000;
+        this.state = "playing";
+
+        this.addLog("Dungeon match started!", "text-green-400 font-bold");
+        this.addLog("P1 Blue Controls: W,A,S,D & [F]", "text-blue-400");
+        this.addLog("P2 Green Controls: Arrows & [R Shift]", "text-green-300");
+
+        // Reset HUD displays
+        this.updateHUD();
+
+        // Clear active overlays
+        document.getElementById("screen-menu").classList.add("hidden");
+        document.getElementById("screen-gameover").classList.add("hidden");
+      }
+
+      spawnInitialMonsters() {
+        // Instantiate 4 monsters directly at different spawn room corners
+        this.monsters.push(new Monster(12, 2, "slime"));
+        this.monsters.push(new Monster(2, 12, "skeleton"));
+        this.monsters.push(new Monster(7, 7, "demon"));
+        this.monsters.push(new Monster(2, 2, "slime")); // placeholder
+      }
+
+      spawnNewTreasure() {
+        // Find suitable floors
+        const pos = this.findClearFloorSpace();
+        if (pos) {
+          // Determine rarity probability distributions
+          const r = Math.random();
+          let type = "small";
+          if (r > 0.85) {
+            type = "rare"; // cyan +50pts
+          } else if (r > 0.55) {
+            type = "medium"; // orange +25pts
+          }
+          this.treasures.push(new Treasure(pos.x, pos.y, type));
+        }
+      }
+
+      spawnReplacementMonsterDelayed() {
+        setTimeout(() => {
+          if (this.state !== "playing") return;
+          if (this.monsters.length >= 6) return;
+
+          // Pick random generator spawner point
+          const spawnerIndex = Math.floor(Math.random() * this.map.spawners.length);
+          const spawner = this.map.spawners[spawnerIndex];
+
+          // Determine random archetype with higher probability for skeletons or demons later
+          const r = Math.random();
+          let monsterType = "slime";
+          if (r > 0.7) {
+            monsterType = "demon";
+          } else if (r > 0.35) {
+            monsterType = "skeleton";
+          }
+
+          const m = new Monster(spawner.x, spawner.y, monsterType);
+          this.monsters.push(m);
+
+          // Spawn smoke particles
+          this.createExplosionParticles(spawner.x * this.tileSize + 20, spawner.y * this.tileSize + 20, "#e879f9", 12, "sparkle");
+          this.addLog(`A feral ${monsterType.toUpperCase()} has spawned in depth arena!`, "text-xs text-purple-400");
+        }, 4000);
+      }
+
+      findClearFloorSpace() {
+        let attempts = 0;
+        while (attempts < 100) {
+          attempts++;
+          const rx = Math.floor(Math.random() * this.map.cols);
+          const ry = Math.floor(Math.random() * this.map.rows);
+         
+          if (this.map.isFloor(rx, ry)) {
+            // Confirm absence of existing treasures
+            const hasTreasure = this.treasures.some(t => t.x === rx && t.y === ry);
+            const hasTrap = this.traps.some(tr => tr.x === rx && tr.y === ry);
+            const hasPlayer = this.players.some(p => p.x === rx && p.y === ry);
+           
+            if (!hasTreasure && !hasTrap && !hasPlayer) {
+              return { x: rx, y: ry };
+            }
+          }
+        }
+        return null;
+      }
+
+      setupEventHandlers() {
+        // Document keypress event registration
+        window.addEventListener("keydown", (e) => {
+          this.keys[e.key] = true;
+          this.keys[e.code] = true; // backups for ShiftRight and other browsers
+
+          // Prevent document scroll on arrows
+          if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "ShiftRight"].includes(e.key)) {
+            e.preventDefault();
+          }
+
+          // Real-time immediate attack keys activation
+          if (this.state === "playing") {
+            // Player 1 attacks: KEY F
+            if (e.key === "f" || e.key === "F" || e.code === "KeyF") {
+              this.triggerPlayerAttack(this.players[0]);
+            }
+           
+            // Player 2 attacks: RIGHT SHIFT (ShiftRight)
+            if (e.code === "ShiftRight" || e.key === "Shift") {
+              // Make sure to double check standard shift behavior to allow playing across structures
+              this.triggerPlayerAttack(this.players[1]);
+            }
+          }
+        });
+
+        window.addEventListener("keyup", (e) => {
+          this.keys[e.key] = false;
+          this.keys[e.code] = false;
+        });
+
+        // HTML Interactive Button Hookups
+        document.getElementById("btn-start").addEventListener("click", () => {
+          soundManager.init();
+          soundManager.playClick();
+          this.initializeMatch();
+        });
+
+        document.getElementById("btn-restart-from-over").addEventListener("click", () => {
+          soundManager.playClick();
+          this.initializeMatch();
+        });
+
+        document.getElementById("btn-reset-game-quick").addEventListener("click", () => {
+          soundManager.playClick();
+          this.addLog("Re-initializing match arena...", "text-slate-500 italic");
+          this.initializeMatch();
+        });
+
+        document.getElementById("btn-music-synth-test").addEventListener("click", () => {
+          soundManager.init();
+          soundManager.playVictory();
+        });
+      }
+
+      triggerPlayerAttack(player) {
+        if (player.hp <= 0 || player.respawnTimer > 0) return;
+        if (player.attackCooldown > 0) return;
+
+        // Flag melee swing animations
+        player.attackCooldown = 550; // 0.55s cooldown
+        player.swingAnimationRemaining = 12; // Swing frames duration drawing
+        soundManager.playAttack();
+
+        // Calculate direct forward tile to search range
+        let tx = player.x;
+        let ty = player.y;
+
+        if (player.facing === "up") ty--;
+        else if (player.facing === "down") ty++;
+        else if (player.facing === "left") tx--;
+        else if (player.facing === "right") tx++;
+
+        // Add swoosh dust sparkles visually ahead
+        const ax = player.visualX * this.tileSize + 20;
+        const ay = player.visualY * this.tileSize + 20;
+       
+        let ox = 0, oy = 0;
+        if (player.facing === "up") oy = -22;
+        if (player.facing === "down") oy = 22;
+        if (player.facing === "left") ox = -22;
+        if (player.facing === "right") ox = 22;
+
+        this.createExplosionParticles(ax + ox, ay + oy, "rgba(255,255,255,0.7)", 6, "slash");
+
+        // Scan and attack monsters hit
+        this.monsters.forEach(m => {
+          // Allow small horizontal/vertical flexibility in hitbox (either on target corridor, or closely overlapping)
+          const inRange = (m.x === tx && m.y === ty) || (m.x === player.x && m.y === player.y);
+         
+          if (inRange && m.hp > 0) {
+            // Knockback monster!
+            let kx = 0;
+            let ky = 0;
+            if (player.facing === "left") kx = -1;
+            if (player.facing === "right") kx = 1;
+            if (player.facing === "up") ky = -1;
+            if (player.facing === "down") ky = 1;
+
+            if (this.map.isFloor(m.x + kx, m.y + ky)) {
+              m.x += kx;
+              m.y += ky;
+            }
+
+            // Deal 20 damage standard
+            m.takeDamage(20);
+           
+            // Pop damage floating tags
+            this.floatingTexts.push(new FloatingText(
+              m.visualX * this.tileSize + 12,
+              m.visualY * this.tileSize - 5,
+              "-20 HP",
+              "#fb7185" // brilliant pink rose red
+            ));
+
+            // Bleed splatter particles
+            this.createExplosionParticles(m.visualX * this.tileSize + 20, m.visualY * this.tileSize + 20, m.color, 12, "blood");
+
+            // Evaluate death
+            if (m.hp <= 0) {
+              soundManager.playMonsterDeath();
+              player.score += m.value;
+              this.addLog(`Player ${player.id} defeated local ${m.type.toUpperCase()}! (+${m.value} Score)`, player.id === 1 ? "text-blue-400" : "text-green-400");
+              this.floatingTexts.push(new FloatingText(
+                m.visualX * this.tileSize + 8,
+                m.visualY * this.tileSize - 18,
+                `+${m.value} PTS`,
+                "#facc15"
+              ));
+
+              // Large death blast
+              this.createExplosionParticles(m.visualX * this.tileSize + 20, m.visualY * this.tileSize + 20, m.color, 24, "blood");
+
+              // Queue spawn replacement
+              this.spawnReplacementMonsterDelayed();
+            }
+          }
+        });
+
+        // Monsters list cleanup
+        this.monsters = this.monsters.filter(m => m.hp > 0);
+        this.updateHUD();
+      }
+
+      createExplosionParticles(x, y, color, count, type = 'dust') {
+        for (let i = 0; i < count; i++) {
+          this.particles.push(new Particle(x, y, color, type));
+        }
+      }
+
+      handleSymmetricKeyMovements(deltaTime) {
+        // Player 1 WSAD Move
+        const p1 = this.players[0];
+        if (p1.hp > 0 && p1.respawnTimer <= 0) {
+          // Move only if player visual position is aligned (stationary tile base)
+          if (p1.visualX === p1.x && p1.visualY === p1.y) {
+            let dx = 0;
+            let dy = 0;
+           
+            if (this.keys["w"] || this.keys["W"]) { dy = -1; p1.facing = "up"; }
+            else if (this.keys["s"] || this.keys["S"]) { dy = 1; p1.facing = "down"; }
+            else if (this.keys["a"] || this.keys["A"]) { dx = -1; p1.facing = "left"; }
+            else if (this.keys["d"] || this.keys["D"]) { dx = 1; p1.facing = "right"; }
+
+            if (dx !== 0 || dy !== 0) {
+              const nx = p1.x + dx;
+              const ny = p1.y + dy;
+              if (this.map.isFloor(nx, ny)) {
+                p1.x = nx;
+                p1.y = ny;
+                // Emit small grey dust trail
+                this.createExplosionParticles(p1.visualX * this.tileSize + 20, p1.visualY * this.tileSize + 36, "#4b5563", 3, "dust");
+              }
+            }
+          }
+        }
+
+        // Player 2 Arrows Move
+        const p2 = this.players[1];
+        if (p2.hp > 0 && p2.respawnTimer <= 0) {
+          if (p2.visualX === p2.x && p2.visualY === p2.y) {
+            let dx = 0;
+            let dy = 0;
+
+            if (this.keys["ArrowUp"]) { dy = -1; p2.facing = "up"; }
+            else if (this.keys["ArrowDown"]) { dy = 1; p2.facing = "down"; }
+            else if (this.keys["ArrowLeft"]) { dx = -1; p2.facing = "left"; }
+            else if (this.keys["ArrowRight"]) { dx = 1; p2.facing = "right"; }
+
+            if (dx !== 0 || dy !== 0) {
+              const nx = p2.x + dx;
+              const ny = p2.y + dy;
+              if (this.map.isFloor(nx, ny)) {
+                p2.x = nx;
+                p2.y = ny;
+                // Emit small grey dust trail
+                this.createExplosionParticles(p2.visualX * this.tileSize + 20, p2.visualY * this.tileSize + 36, "#4b5563", 3, "dust");
+              }
+            }
+          }
+        }
+      }
+
+      evaluateCollisionsAndTrigger(time) {
+        // Evaluate Treasures Collision Collect
+        this.players.forEach(p => {
+          if (p.hp <= 0) return;
+          this.treasures.forEach((t, index) => {
+            if (p.x === t.x && p.y === t.y) {
+              soundManager.playTreasure();
+              p.score += t.points;
+             
+              const rarityString = t.type.toUpperCase();
+              this.addLog(`Player ${p.id} gathered ${rarityString} Chest (+${t.points} Score)`, p.id === 1 ? "text-blue-300" : "text-green-300");
+
+              // floating points marker
+              this.floatingTexts.push(new FloatingText(
+                t.x * this.tileSize + 4,
+                t.y * this.tileSize - 5,
+                `+${t.points} PTS`,
+                t.color
+              ));
+
+              // Create gorgeous sparkling burst
+              this.createExplosionParticles(t.x * this.tileSize + 20, t.y * this.tileSize + 20, t.color, 16, "sparkle");
+
+              // Erase and respawn after interval delay
+              this.treasures.splice(index, 1);
+              setTimeout(() => {
+                if (this.state === "playing") {
+                  this.spawnNewTreasure();
+                }
+              }, 2500);
+            }
+          });
+        });
+
+        // Evaluate Traps Triggering collisions
+        this.players.forEach(p => {
+          if (p.hp <= 0) return;
+          this.traps.forEach(tr => {
+            if (p.x === tr.x && p.y === tr.y && tr.cooldown <= 0) {
+              // Trigger spikes trap
+              tr.trigger();
+              p.takeDamage(10);
+             
+              // Spikes blood splatter
+              this.createExplosionParticles(p.visualX * this.tileSize + 20, p.visualY * this.tileSize + 20, "#ef4444", 15, "blood");
+
+              this.addLog(`Player ${p.id} tripped spike trap! (-10 HP)`, "text-rose-500 font-bold");
+              this.floatingTexts.push(new FloatingText(
+                p.visualX * this.tileSize + 10,
+                p.visualY * this.tileSize + 12,
+                "-10 HP",
+                "#ef4444"
+              ));
+
+              this.assessPlayerDeath(p);
+            }
+          });
+        });
+
+        // Evaluate Monsters attacking players when adjacent / overlapping
+        const now = Date.now();
+        this.monsters.forEach(m => {
+          if (m.hp <= 0) return;
+          this.players.forEach(p => {
+            if (p.hp <= 0) return;
+           
+            // Check Manhattan distance adjacent (within 1 tile gap)
+            const dist = Math.abs(m.x - p.x) + Math.abs(m.y - p.y);
+            if (dist <= 1) {
+              if (!m.lastAttackTime || now - m.lastAttackTime > 650) {
+                m.lastAttackTime = now;
+               
+                // Attack Player
+                let dmgValue = 6;
+                if (m.type === "skeleton") dmgValue = 12;
+                if (m.type === "demon") dmgValue = 18;
+
+                p.takeDamage(dmgValue);
+                this.floatingTexts.push(new FloatingText(
+                  p.visualX * this.tileSize + 12,
+                  p.visualY * this.tileSize - 6,
+                  `-${dmgValue} HP`,
+                  "#f87171"
+                ));
+
+                // Small hit explosion blood particles
+                this.createExplosionParticles(p.visualX * this.tileSize + 20, p.visualY * this.tileSize + 20, "#dc2626", 8, "blood");
+
+                this.assessPlayerDeath(p);
+              }
+            }
+          });
+        });
+      }
+
+      assessPlayerDeath(player) {
+        if (player.hp <= 0 && player.respawnTimer <= 0) {
+          player.respawnTimer = 3000; // 3 seconds penalty ghost timer
+         
+          // Deduct score penalty slightly to encourage defensive gaming tactics
+          const scoreDeduction = 50;
+          player.score = Math.max(0, player.score - scoreDeduction);
+
+          this.addLog(`PLAYER ${player.id} SLAIN! Respawning in 3s... (-${scoreDeduction} PTS)`, "text-red-500 font-extrabold retro-font-headline text-[10px]");
+         
+          // Large red cloud splatter
+          this.createExplosionParticles(player.visualX * this.tileSize + 20, player.visualY * this.tileSize + 20, "#ef4444", 28, "blood");
+
+          // Reset positioning values after timeout
+          setTimeout(() => {
+            if (this.state !== "playing") return;
+            player.hp = 100;
+            // Spawn back symmetrically in corner
+            if (player.id === 1) {
+              player.x = 1;
+              player.y = 1;
+            } else {
+              player.x = 13;
+              player.y = 13;
+            }
+            player.visualX = player.x;
+            player.visualY = player.y;
+            this.addLog(`Player ${player.id} back in play!`, player.id === 1 ? "text-blue-400" : "text-green-400");
+           
+            // Spawn splash dust
+            this.createExplosionParticles(player.visualX * this.tileSize + 20, player.visualY * this.tileSize + 20, player.color, 15, "sparkle");
+            this.updateHUD();
+          }, 3000);
+        }
+        this.updateHUD();
+      }
+
+      updateHUD() {
+        if (this.players.length < 2) return;
+       
+        // P1 HUD update
+        const p1 = this.players[0];
+        const p1HText = document.getElementById("p1-health-text");
+        const p1HBar = document.getElementById("p1-health-bar");
+        const p1ScoreDisp = document.getElementById("p1-score-display");
+
+        p1HText.innerText = `${p1.hp} HP`;
+        p1HBar.style.width = `${p1.hp}%`;
+        // Zero pads formatting score
+        p1ScoreDisp.innerText = String(p1.score).padStart(4, "0");
+
+        // P2 HUD update
+        const p2 = this.players[1];
+        const p2HText = document.getElementById("p2-health-text");
+        const p2HBar = document.getElementById("p2-health-bar");
+        const p2ScoreDisp = document.getElementById("p2-score-display");
+
+        p2HText.innerText = `${p2.hp} HP`;
+        p2HBar.style.width = `${p2.hp}%`;
+        p2ScoreDisp.innerText = String(p2.score).padStart(4, "0");
+      }
+
+      updateCountdownTimer(deltaTime) {
+        this.gameTimeRemaining = Math.max(0, this.gameTimeRemaining - deltaTime);
+       
+        const totalSecs = Math.ceil(this.gameTimeRemaining / 1000);
+        const mins = Math.floor(totalSecs / 60);
+        const secs = totalSecs % 60;
+       
+        const timeBox = document.getElementById("countdown-timer");
+        timeBox.innerText = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+
+        // Game over check
+        if (this.gameTimeRemaining <= 0) {
+          this.triggerGameOver();
+        }
+      }
+
+      triggerGameOver() {
+        this.state = "gameover";
+        soundManager.playVictory();
+
+        // Calculate and apply survival bonus: +100pts for surviving until the end with health above 50% (51HP+)
+        const p1 = this.players[0];
+        const p2 = this.players[1];
+
+        let p1Bonus = false;
+        let p2Bonus = false;
+
+        if (p1.hp > 50 && p1.respawnTimer <= 0) {
+          p1.score += 100;
+          p1Bonus = true;
+          this.addLog("P1 awarded +100pts Core Survival Bonus (>50% HP)!", "text-yellow-400 font-bold");
+        }
+        if (p2.hp > 50 && p2.respawnTimer <= 0) {
+          p2.score += 100;
+          p2Bonus = true;
+          this.addLog("P2 awarded +100pts Core Survival Bonus (>50% HP)!", "text-yellow-400 font-bold");
+        }
+
+        this.updateHUD();
+
+        // Screen displays announcement details hookups
+        const winTitle = document.getElementById("winner-announcement");
+        const p1Final = document.getElementById("p1-final-score");
+        const p2Final = document.getElementById("p2-final-score");
+        const p1BonDiv = document.getElementById("p1-survival-bonus");
+        const p2BonDiv = document.getElementById("p2-survival-bonus");
+
+        p1Final.innerText = p1.score;
+        p2Final.innerText = p2.score;
+
+        if (p1Bonus) p1BonDiv.classList.remove("hidden");
+        else p1BonDiv.classList.add("hidden");
+
+        if (p2Bonus) p2BonDiv.classList.remove("hidden");
+        else p2BonDiv.classList.add("hidden");
+
+        if (p1.score > p2.score) {
+          winTitle.innerText = "PLAYER 1 WINS!";
+          winTitle.className = "text-xl font-bold text-blue-400 glow-blue retro-font-headline text-sm tracking-wider mb-3";
+          this.addLog("MATCH OVER: PLAYER 1 IS VICTORIOUS!", "text-blue-400 font-extrabold retro-font-headline text-xs");
+        } else if (p2.score > p1.score) {
+          winTitle.innerText = "PLAYER 2 WINS!";
+          winTitle.className = "text-xl font-bold text-green-400 glow-green retro-font-headline text-sm tracking-wider mb-3";
+          this.addLog("MATCH OVER: PLAYER 2 IS VICTORIOUS!", "text-green-400 font-extrabold retro-font-headline text-xs");
+        } else {
+          winTitle.innerText = "DRAW GAME!";
+          winTitle.className = "text-xl font-bold text-yellow-400 glow-gold retro-font-headline text-sm tracking-wider mb-3";
+          this.addLog("MATCH OVER: CO-OP DUEL DECLARED A DRAW!", "text-gray-400 font-extrabold retro-font-headline text-xs");
+        }
+
+        // Show Game Over panel overlay
+        document.getElementById("screen-gameover").classList.remove("hidden");
+      }
+
+      runLoop(time) {
+        const deltaTime = Math.min(33, time - this.lastTime); // cap deltaTime at ~30FPS equivalent to prevent background speed jumps
+        this.lastTime = time;
+
+        if (this.state === "playing") {
+          this.updateCountdownTimer(deltaTime);
+          this.handleSymmetricKeyMovements(deltaTime);
+          this.evaluateCollisionsAndTrigger(time);
+         
+          // Traps Cooldown progression tick
+          this.traps.forEach(tr => tr.update(deltaTime));
+
+          // Tick players animations / mechanics states
+          this.players.forEach(p => p.update(deltaTime));
+
+          // Tick monsters behaviors
+          this.monsters.forEach(m => m.update(deltaTime, this.map, this.players, time));
+
+          // Add sparkles visually around gold chests automatically on random interval cycles
+          if (time - this.lastTreasureSparkle > 250) {
+            this.lastTreasureSparkle = time;
+            this.treasures.forEach(tr => {
+              this.particles.push(new Particle(
+                tr.x * this.tileSize + 10 + Math.random() * 20,
+                tr.y * this.tileSize + 10 + Math.random() * 20,
+                "#fef08a",
+                "sparkle"
+              ));
+            });
+          }
+        }
+
+        // Particles updates & removals
+        this.particles.forEach(p => p.update(p.type === 'blood'));
+        this.particles = this.particles.filter(p => p.life > 0);
+
+        // Floating texts updates & removals
+        this.floatingTexts.forEach(ft => ft.update());
+        this.floatingTexts = this.floatingTexts.filter(ft => ft.life > 0);
+
+        // Render Canvas layout!
+        this.drawCanvas(time);
+
+        requestAnimationFrame((t) => this.runLoop(t));
+      }
+
+      drawCanvas(time) {
+        const ctx = this.ctx;
+        const tileSize = this.tileSize;
+
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // 1. Draw Map Flooring & Walls Tiles Symmetrically
+        for (let r = 0; r < this.map.rows; r++) {
+          for (let c = 0; c < this.map.cols; c++) {
+            const val = this.map.grid[r][c];
+            const px = c * tileSize;
+            const py = r * tileSize;
+
+            if (val === 1) {
+              // Wall block: Beveled, retro colored grey castle brick look
+              ctx.fillStyle = "#111116"; // deep shadow back
+              ctx.fillRect(px, py, tileSize, tileSize);
+
+              ctx.fillStyle = "#2a2a32"; // brick center face (var(--wall))
+              ctx.fillRect(px + 2, py + 2, tileSize - 4, tileSize - 4);
+
+              // Stone highlights & brick texture lines
+              ctx.strokeStyle = "#3e3e4a";
+              ctx.lineWidth = 1.5;
+              ctx.strokeRect(px + 3, py + 3, tileSize - 6, tileSize - 6);
+
+              // Diagonal cracks decor
+              if ((r + c) % 5 === 0) {
+                ctx.strokeStyle = "#111116";
+                ctx.beginPath();
+                ctx.moveTo(px + 6, py + 6);
+                ctx.lineTo(px + 16, py + 16);
+                ctx.stroke();
+              }
+            } else {
+              // Floor block: dark subtle slate stones from Artistic Flair colors
+              ctx.fillStyle = "#16161d"; // var(--floor)
+              ctx.fillRect(px, py, tileSize, tileSize);
+             
+              // Draw stone grout border line
+              ctx.strokeStyle = "#21212a";
+              ctx.lineWidth = 1;
+              ctx.strokeRect(px, py, tileSize, tileSize);
+
+              // Crack lines or floor dirt noise
+              if ((r + c) % 3 === 0) {
+                ctx.fillStyle = "#1c1c25";
+                ctx.fillRect(px + 12, py + 12, 2, 2);
+                ctx.fillRect(px + 28, py + 22, 2.5, 2.5);
+              }
+            }
+          }
+        }
+
+        // 2. Draw static Spawning Pedestals for graphics reference (themed warm)
+        this.map.spawners.forEach(s => {
+          const px = s.x * tileSize;
+          const py = s.y * tileSize;
+          ctx.strokeStyle = "rgba(242, 125, 38, 0.28)"; // glowing warm accent rune grounds
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(px + tileSize/2, py + tileSize/2, 16, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Small magical node center pixel
+          ctx.fillStyle = "rgba(242, 125, 38, 0.4)";
+          ctx.fillRect(px + tileSize/2 - 2, py + tileSize/2 - 2, 4, 4);
+        });
+
+        // 3. Draw static traps
+        this.traps.forEach(tr => tr.draw(ctx, tileSize));
+
+        // 4. Draw treasures
+        this.treasures.forEach(tr => tr.draw(ctx, tileSize, time));
+
+        // 5. Draw monsters
+        this.monsters.forEach(m => m.draw(ctx, tileSize, time));
+
+        // 6. Draw players
+        this.players.forEach(p => p.draw(ctx, tileSize, time));
+
+        // 7. Draw all active particles
+        this.particles.forEach(p => p.draw(ctx));
+
+        // 8. Draw floating info texts
+        this.floatingTexts.forEach(ft => ft.draw(ctx));
+
+        // 9. If player is dead, draw custom respawning overlay over their side of the map bounds
+        this.players.forEach(p => {
+          if (p.respawnTimer > 0) {
+            const tx = p.id === 1 ? 40 : 440;
+            const ty = p.id === 1 ? 50 : 530;
+
+            ctx.save();
+            ctx.fillStyle = "rgba(15, 10, 31, 0.85)";
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = p.color;
+            ctx.fillRect(tx, ty, 120, 36);
+            ctx.strokeRect(tx, ty, 120, 36);
+
+            ctx.fillStyle = "#ffffff";
+            ctx.font = 'bold 9px "Press Start 2P"';
+            ctx.textAlign = "center";
+            ctx.fillText(`P${p.id} DEAD`, tx + 60, ty + 16);
+           
+            const remainingSecs = Math.ceil(p.respawnTimer / 1000);
+            ctx.fillStyle = p.color;
+            ctx.fillText(`SPAWN IN ${remainingSecs}S`, tx + 60, ty + 28);
+            ctx.restore();
+          }
+        });
+      }
+    }
+
+    // Spin engine loop execution!
+    window.addEventListener("load", () => {
+      const engine = new GameEngine();
+      requestAnimationFrame((t) => engine.runLoop(t));
+    });
+  </script>
+</body>
+</html>
