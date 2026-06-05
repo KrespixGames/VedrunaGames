@@ -311,7 +311,7 @@ if(state==="start"){
 ctx.textAlign="center";
 ctx.fillStyle="white";
 ctx.font="bold 64px Arial";
-ctx.fillText("LASER BOUNCE",canvas.width/2,canvas.height/2-50);
+ctx.fillText("LASERTAG",canvas.width/2,canvas.height/2-50);
 ctx.font="24px Arial";
 ctx.fillText("LOCAL 2 PLAYER LASER DUEL",canvas.width/2,canvas.height/2);
 return;
