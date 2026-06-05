@@ -418,109 +418,105 @@ bullets.push(b);
 /* ===== BOT ===== */
 function botAI(){
 
-    if(mode!=="bot") return;
+    if(mode !== "bot") return;
 
-    // EASY
-    if(difficulty==="easy"){
+    let thinkRate;
+    let moveSpeed;
+    let aimError;
+    let shootChance;
+    let dodgeWeight;
 
-        let target=p1.position.x+(Math.random()-0.5)*4.5;
+    switch(difficulty){
 
-        if(p2.position.x<target) p2.position.x+=0.05;
-        if(p2.position.x>target) p2.position.x-=0.05;
+case "easy":
+    thinkRate = 100;     // pensa molt lent
+    moveSpeed = 0.10;    // molt lent
+    aimError = 10;       // s'equivoca molt
+    shootChance = 0.015; // gairebé no dispara
+    dodgeWeight = 4;     // quasi no esquiva
+    break;
 
-        botTimer+=Math.random()*0.004;
+case "medium":
+    thinkRate = 55;      // una mica més lent
+    moveSpeed = 0.25;
+    aimError = 4;
+    shootChance = 0.05;
+    dodgeWeight = 12;
+    break;
 
-        if(botTimer>1){
-            shoot(2);
-            botTimer=0;
-        }
-
-        return;
+        default: // HARD
+            thinkRate = 30;
+            moveSpeed = 0.6;
+            aimError = 0;
+            shootChance = 0.15;
+            dodgeWeight = 25;
+            break;
     }
-
-    // MEDIUM
-    if(difficulty==="medium"){
-
-        let target=p1.position.x+(Math.random()-0.5)*1.5;
-
-        if(p2.position.x<target) p2.position.x+=0.16;
-        if(p2.position.x>target) p2.position.x-=0.16;
-
-        botTimer+=Math.random()*0.014;
-
-        if(botTimer>1){
-            shoot(2);
-            botTimer=0;
-        }
-
-        return;
-    }
-
-    // HARD AI
 
     botBrain.thinkTime++;
 
-    // pensa cada mig segon
-    if(botBrain.thinkTime > 30){
+    if(botBrain.thinkTime > thinkRate){
 
         let bestX = 0;
         let bestScore = -999999;
 
         for(let x=-14;x<=14;x++){
 
-            let score = Math.random()*20;
+            let score = Math.random()*10;
 
-            // evitar bales
+            // esquivar bales
             for(let b of bullets){
 
-                if(b.userData.dir!==1) continue;
+                if(b.userData.dir !== 1) continue;
 
-                let dx = Math.abs(x-b.position.x);
+                let dx = Math.abs(x - b.position.x);
 
-                score += dx*25;
+                score += dx * dodgeWeight;
 
-                if(dx<2) score-=500;
+                if(dx < 2){
+                    score -= 500;
+                }
             }
 
-            // intentar mantenir visió del jugador
-            score -= Math.abs(x-p1.position.x)*2;
+            // seguir el jugador
+            score -= Math.abs(x - p1.position.x) * 2;
 
-            if(score>bestScore){
-                bestScore=score;
-                bestX=x;
+            if(score > bestScore){
+                bestScore = score;
+                bestX = x;
             }
         }
+
+        // error d'apuntat segons dificultat
+        bestX += (Math.random() - 0.5) * aimError;
 
         botBrain.targetX = bestX;
         botBrain.thinkTime = 0;
     }
 
     // moviment
-    let speed = 0.6;
-
     if(p2.position.x < botBrain.targetX){
-        p2.position.x += speed;
+        p2.position.x += moveSpeed;
     }
 
     if(p2.position.x > botBrain.targetX){
-        p2.position.x -= speed;
+        p2.position.x -= moveSpeed;
     }
 
     p2.position.x =
-        Math.max(-14,Math.min(14,p2.position.x));
+        Math.max(-14, Math.min(14, p2.position.x));
 
-    // disparar si té línia de tir
+    // dispar
     if(
-        Math.abs(p2.position.x-p1.position.x)<2 &&
-        ammo2>0 &&
+        Math.abs(p2.position.x - p1.position.x) < (2 + aimError) &&
+        ammo2 > 0 &&
         !reloading2
     ){
-        if(Math.random()<0.15){
+        if(Math.random() < shootChance){
             shoot(2);
         }
     }
 }
-
 
 /* ===== UI ===== */
 function updateUI(){
