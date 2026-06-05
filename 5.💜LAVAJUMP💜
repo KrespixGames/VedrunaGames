@@ -55,7 +55,9 @@ button:hover{transform:scale(1.04)}
 <div id="gameOver" class="overlay hidden">
 <h1 id="winnerText">Winner</h1>
 <div id="stats"></div>
+
 <button id="againBtn">Play again</button>
+<button id="menuBtn">Go to menu</button>
 </div>
 
 <script>
@@ -307,8 +309,20 @@ let time=((performance.now()-startTime)/1000).toFixed(1);
 let record=Math.max(+localStorage.getItem("lavaRecord")||0,+time);
 localStorage.setItem("lavaRecord",record);
 
-document.getElementById("winnerText").textContent=
-winner?`Player ${winner.color==="#3da0ff"?"1":"2"} wins!`:"Draw";
+const winnerTextEl = document.getElementById("winnerText");
+
+if (winner) {
+  if (winner.color === "#ff4b4b") {
+    winnerTextEl.textContent = "PLAYER RED WINS";
+    winnerTextEl.style.color = "#ff4b4b";
+  } else if (winner.color === "#3da0ff") {
+    winnerTextEl.textContent = "PLAYER BLUE WINS";
+    winnerTextEl.style.color = "#3da0ff";
+  }
+} else {
+  winnerTextEl.textContent = "DRAW";
+  winnerTextEl.style.color = "white";
+}
 
 document.getElementById("stats").innerHTML=
 `Time: ${time}s<br>Record: ${record.toFixed(1)}s`;
@@ -327,7 +341,12 @@ gameState="playing";
 }
 
 document.getElementById("playBtn").onclick=()=>{beep(700,.08);startGame();};
-document.getElementById("againBtn").onclick=()=>{beep(700,.08);startGame();};
+document.getElementById("menuBtn").onclick = () => {
+  beep(300, .1);
+  document.getElementById("gameOver").classList.add("hidden");
+  document.getElementById("menu").classList.remove("hidden");
+  gameState = "menu";
+};
 document.getElementById("resetBtn").onclick=()=>{localStorage.removeItem("lavaRecord");beep(300,.1);};
 
 let last=0;
